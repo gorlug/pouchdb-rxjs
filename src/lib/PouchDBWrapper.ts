@@ -1,5 +1,5 @@
 // @ts-ignore
-import PouchDB from "pouchdb";
+import PouchDB from "pouchdb-browser";
 // @ts-ignore
 import pouchdb_authentication from "pouchdb-authentication";
 import {Observable, of, Subject, throwError} from "rxjs";
