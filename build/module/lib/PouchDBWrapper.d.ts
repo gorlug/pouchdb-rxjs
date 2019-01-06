@@ -1,4 +1,3 @@
-/// <reference types="pouchdb-replication" />
 /// <reference types="pouchdb-core" />
 import { Observable, Subject } from "rxjs";
 import { PouchDBDocument, PouchDBDocumentGenerator } from "./PouchDBDocument";

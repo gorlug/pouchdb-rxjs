@@ -1,7 +1,16 @@
+// https://pouchdb.com/custom.html
 // @ts-ignore
-import PouchDB from "pouchdb-browser";
+import PouchDB from "pouchdb-core";
+// @ts-ignore
+import pouchdb_adapter_idb from "pouchdb-adapter-idb";
+// @ts-ignore
+import pouchdb_adapter_http from "pouchdb-adapter-http";
 // @ts-ignore
 import pouchdb_authentication from "pouchdb-authentication";
+// @ts-ignore
+import pouchdb_mapreduce from "pouchdb-mapreduce";
+// @ts-ignore
+import pouchdb_replication from "pouchdb-replication";
 import {Observable, of, Subject, throwError} from "rxjs";
 import {catchError, concatMap} from "rxjs/operators";
 import {fromPromise} from "rxjs/internal-compatibility";
@@ -13,6 +22,10 @@ import Response = PouchDB.Core.Response;
 import AllDocsResponse = PouchDB.Core.AllDocsResponse;
 import {Logger, ValueWithLogger} from "./Logger";
 
+PouchDB.plugin(pouchdb_adapter_idb);
+PouchDB.plugin(pouchdb_adapter_http);
+PouchDB.plugin(pouchdb_mapreduce);
+PouchDB.plugin(pouchdb_replication)
 PouchDB.plugin(pouchdb_authentication);
 
 export interface DeletedDocument {
@@ -69,10 +82,6 @@ export class PouchDBWrapper {
         wrapper.url = conf.toUrl();
         const db = new PouchDB(conf.toUrl(), {
             skip_setup: true,
-            fetch(url, opts) {
-                opts.credentials = "include";
-                return PouchDB.fetch(url, opts);
-            },
             auth: {
                 username: conf.credentials.username,
                 password: conf.credentials.password
