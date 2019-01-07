@@ -108,7 +108,7 @@ export class PouchDBWrapper {
     }
 
     private static onSyncChange(firstDB: PouchDBWrapper, secondDB: PouchDBWrapper,
-                                info: PouchDB.Replication.SyncResult<any>) {
+                                info: PouchDB.  Replication.SyncResult<any>) {
         if (!info.change.docs) {
             return;
         }
