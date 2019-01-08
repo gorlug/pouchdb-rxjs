@@ -2,7 +2,7 @@
 import {PouchDBDocumentList} from "./PouchDBDocumentList";
 import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
 import {CustomJasmineMatchers} from "./CustomJasmineMatchers";
-import {PouchDBWrapper} from "./PouchDBWrapper";
+import {DBValueWithLog, PouchDBWrapper} from "./PouchDBWrapper";
 import {catchError, concatMap, tap} from "rxjs/operators";
 import {
     Observable,
@@ -205,16 +205,16 @@ const test = {
         );
     },
 
-    addItemTo: function (dbResult: { value: PouchDBWrapper, log: Logger }) {
+    addItemTo: function (db: PouchDBWrapper, log: Logger) {
         return {
             withName: function (name: string, minus: number = 0): Observable<{ value: PouchDBWrapper, log: Logger }> {
                 const item = createItem(minus);
-                return item.setNameTo(name, dbResult.log).pipe(
+                return item.setNameTo(name, log).pipe(
                     concatMap((result: ValueWithLogger) => {
-                        return dbResult.value.saveDocument(item, result.log);
+                        return db.saveDocument(item, result.log);
                     }),
                     concatMap((result: ValueWithLogger) => {
-                        return result.log.addTo(of(result.value));
+                        return result.log.addTo(of(db));
                     })
                 );
             }
@@ -239,12 +239,8 @@ const test = {
 
     make: function (list: ListImplementation) {
         return {
-            subscribeTo: function (dbObservable: Observable<{ value: PouchDBWrapper, log: Logger }>) {
-                return dbObservable.pipe(
-                    concatMap((result: { value: PouchDBWrapper, log: Logger }) => {
-                        return list.subscribeTo(result.value, result.log);
-                    })
-                );
+            subscribeTo: function (dbResult: DBValueWithLog) {
+                return list.subscribeTo(dbResult.value, dbResult.log);
             }
         };
     },
@@ -689,29 +685,71 @@ describe("PouchDBDocumentList tests", () => {
         test.subscribeToEnd(observable, complete, startLog);
     });
 
-    function createDBWithTwoItemsAndSubscribeWithList() {
-        let dbObservable = test.createLocalDB();
-        const name1 = "name1";
-        dbObservable = test.addItemTo(dbObservable).withName(name1, 100);
-        const name2 = "name2";
-        dbObservable = test.addItemTo(dbObservable).withName(name2);
-        const list = test.createNewList();
-        dbObservable = test.make(list).subscribeTo(dbObservable);
-        return {dbObservable, list, name1, name2};
+    interface DBWithTwoItemsSubscribeResult {
+        value: {
+            list: ListImplementation,
+            name1: string,
+            name2: string
+        };
+        log: Logger;
     }
 
-    it("should initialize the list from PouchDBWrapper", complete => {
-        const {dbObservable, list} = createDBWithTwoItemsAndSubscribeWithList();
-        const observable = test.theList(list).shouldHaveSize(2, dbObservable);
-        test.subscribeToEnd(observable, complete);
-    });
-    it("should after subscription automatically add a new item to the beginning of the list", complete => {
-        let dbObservable = test.createLocalDB();
-        const list = test.createNewList();
-        dbObservable = test.make(list).subscribeTo(dbObservable);
-        dbObservable = test.after(list).subscriptionWasAddedTo(dbObservable).listShouldHaveSize(0);
+    function createDBWithTwoItemsAndSubscribeWithList(log: Logger):
+            Observable<DBWithTwoItemsSubscribeResult> {
+        const startLog = log.start(LOG_NAME, "createDBWithTwoItemsAndSubscribeWithList");
         const name1 = "name1";
-        dbObservable = test.addItemTo(dbObservable).withName(name1, 100);
+        const name2 = "name2";
+        const list: ListImplementation = test.createNewList();
+        return test.createLocalDB().pipe(
+            concatMap((result: DBValueWithLog) =>
+                test.addItemTo(result.value, result.log).withName(name1, 100)),
+            concatMap((result: ValueWithLogger) =>
+                test.addItemTo(result.value, result.log).withName(name2)),
+            concatMap((result: ValueWithLogger) =>
+                test.make(list).subscribeTo(result)),
+            concatMap((result: ValueWithLogger) => {
+                startLog.complete();
+                return result.log.addTo(of({list, name1, name2}));
+            })
+        );
+    }
+
+    const should_initialize_the_list_from_PouchDBWrapper = "should initialize the list from PouchDBWrapper";
+    it(should_initialize_the_list_from_PouchDBWrapper, complete => {
+        const {startObservable, startLog} = test.createStartObservable(
+            should_initialize_the_list_from_PouchDBWrapper);
+        const observable = startObservable.pipe(
+            concatMap((result: ValueWithLogger) =>
+                createDBWithTwoItemsAndSubscribeWithList(result.log)),
+            concatMap((result: DBWithTwoItemsSubscribeResult) => {
+                test.theList(result.value.list).shouldHaveSize(2, result.log);
+                return of(result);
+            })
+        );
+        test.subscribeToEnd(observable, complete, startLog);
+    });
+    const should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list =
+        "should after subscription automatically add a new item to the beginning of the list";
+    it(should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list, complete => {
+        const {startObservable, startLog} = test.createStartObservable(
+            should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list);
+        const list = test.createNewList();
+        const name1 = "name1";
+        let db: PouchDBWrapper;
+        const observable = startObservable.pipe(
+            concatMap((result: ValueWithLogger) =>
+                test.createLocalDB()),
+            concatMap((result: DBValueWithLog) => {
+                db = result.value;
+                return test.make(list).subscribeTo(result);
+            }),
+            concatMap((result: ValueWithLogger) =>
+                test.theList(list).shouldHaveSize(0, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.addItemTo(db, result.log).withName(name1, 100)),
+        );
+        test.subscribeToEnd(observable, complete, startLog);
+        /* test.subscribeToEnd(observable, complete, startLog);
         dbObservable = test.afterItemWasAddedTo(dbObservable).theList(list).shouldHaveSize(1);
         const name2 = "name2";
         dbObservable = test.addItemTo(dbObservable).withName(name2);
@@ -719,6 +757,7 @@ describe("PouchDBDocumentList tests", () => {
         dbObservable = test.afterItemWasAddedTo(dbObservable).theItemIn(list).atIndex(0).shouldHaveName(name2, dbObservable);
         dbObservable = test.afterItemWasAddedTo(dbObservable).theItemIn(list).atIndex(1).shouldHaveName(name1, dbObservable);
         test.subscribeToEnd(dbObservable, complete);
+        */
     });
     it("should after subscribe delete elements from the list", complete => {
         const creationResult = createDBWithTwoItemsAndSubscribeWithList();
