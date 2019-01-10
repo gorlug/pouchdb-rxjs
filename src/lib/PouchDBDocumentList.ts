@@ -36,7 +36,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 if (currentIndex >= 0) {
                     const newIndex = currentIndex - 1;
                     console.log("newIndex", newIndex);
-                    this.moveItem(currentIndex, newIndex, item);
+                    this.moveItem(currentIndex, newIndex, item, logStart);
                 }
                 logStart.complete();
                 return logStart.addTo(of(item));
@@ -62,7 +62,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 const currentIndex: number = result.value;
                 if (currentIndex < this.items.length - 1) {
                     const newIndex = currentIndex + 1;
-                    this.moveItem(currentIndex, newIndex, item);
+                    this.moveItem(currentIndex, newIndex, item, run);
                 }
                 run.complete();
                 return run.addTo(of(item));
@@ -107,7 +107,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 }
             });
             if (existingIndex !== -1) {
-                return this.deleteItem(existingItem, log).pipe(
+                this.deleteItem(existingItem, log).pipe(
                     concatMap(result => this.addItemAtIndex(existingIndex, item, result.log) )
                 ).subscribe(emitter);
             } else {

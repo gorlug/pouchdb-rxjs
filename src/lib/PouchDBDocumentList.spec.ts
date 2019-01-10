@@ -267,13 +267,23 @@ const test = {
         return {
             shouldHaveSize: function (size: number, log: Logger) {
                 const actualSize = list.listContent$.getValue().value.length;
+                log.logMessage(LOG_NAME, "list content should have size", {expected: size, actual: actualSize});
                 expect(actualSize).toBe(size);
                 return log.addTo(of(actualSize));
             },
             shouldHaveItemAtIndex: function (index: number) {
                 return {
                     withName: function (name: string, log: Logger) {
-                        list.listContent$.getValue()[index].shouldHaveName(name);
+                        log.logMessage(LOG_NAME, "list content should have item at index",
+                            {expected_name: name, expected_index: index});
+                        const item: ListItemImplementation = list.listContent$.getValue()[index];
+                        if (item === undefined) {
+                            const errorMsg = "item in list content at index " + index + " is undefined";
+                            log.logError(LOG_NAME, "list content should have item at index error", errorMsg);
+                            fail(errorMsg);
+                            return throwError(errorMsg);
+                        }
+                        item.shouldHaveName(name);
                         return log.addTo(of(name));
                     }
                 };
@@ -345,7 +355,9 @@ const test = {
         observable.pipe(
             catchError(error => {
                 return log.logError(LOG_NAME, "subscribeToEnd", error + "", error).pipe(
-                    concatMap(() => throwError(error))
+                    concatMap(() => {
+                        return throwError(error);
+                    })
                 );
             }),
             concatMap(() => log.complete())
@@ -579,7 +591,6 @@ describe("PouchDBDocumentList tests", () => {
                 item.addOrUpdateOn(list, result.log)),
             concatMap((result: ValueWithLogger) =>
                 test.itemIn(list).atIndex(0).shouldHaveName(firstName, result.log)),
-
             concatMap((result: ValueWithLogger) =>
                 item.setNameTo(secondName, result.log)),
             concatMap((result: ValueWithLogger) =>
