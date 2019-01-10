@@ -1,7 +1,7 @@
 import {PouchDBDocument} from "./PouchDBDocument";
 import {Logger, ValueWithLogger} from "./Logger";
 import {DBValueWithLog, DeletedDocument, PouchDBWrapper} from "./PouchDBWrapper";
-import {BehaviorSubject, concat, Observable, of, Subscriber} from "rxjs";
+import {BehaviorSubject, Observable, of} from "rxjs";
 import {concatMap} from "rxjs/operators";
 
 const LOG_NAME = "PouchDBDocumentList";
@@ -44,8 +44,12 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         );
     }
 
-    private moveItem(currentIndex: number, newIndex: number, item: T) {
-        this.log.debug("move item", item.getDebugInfo(), "from", currentIndex, "to", newIndex);
+    private moveItem(currentIndex: number, newIndex: number, item: T, log: Logger) {
+        log.logMessage(LOG_NAME, "move item", {
+            currentIndex: currentIndex,
+            newIndex: newIndex,
+            item: item.getDebugInfo()
+        });
         this.items.splice(currentIndex, 1);
         this.items.splice(newIndex, 0, item);
     }
@@ -190,7 +194,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                     errorMessage, {index: index, length: this.items.length});
             }
             const item = this.items[index];
-            this.log.debug("getting item at index", index, "is", item.getDebugInfo());
+            this.log.logMessage(LOG_NAME, "getting item at index", {item: item.getDebugInfo(), index: index});
             log.logMessage(LOG_NAME, "getItemAtIndex item is",
                 {item: item.getDebugInfo(), index: index});
             log.addToSubscriberNextAndComplete(emitter, item);

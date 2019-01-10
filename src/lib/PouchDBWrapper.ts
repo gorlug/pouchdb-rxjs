@@ -25,7 +25,7 @@ import {Logger, ValueWithLogger} from "./Logger";
 PouchDB.plugin(pouchdb_adapter_idb);
 PouchDB.plugin(pouchdb_adapter_http);
 PouchDB.plugin(pouchdb_mapreduce);
-PouchDB.plugin(pouchdb_replication)
+PouchDB.plugin(pouchdb_replication);
 PouchDB.plugin(pouchdb_authentication);
 
 export interface DeletedDocument {

@@ -221,18 +221,11 @@ const test = {
         };
     },
 
-    deleteItemFrom: function (dbObservable: Observable<{ value: PouchDBWrapper, log: Logger }>) {
+    deleteItemFrom: function (db: PouchDBWrapper, log: Logger) {
         return {
             withNameAndList: function (name: string, list: ListImplementation) {
-                let dbResult;
-                return dbObservable.pipe(
-                    concatMap(result => {
-                        dbResult = result;
-                        const item = list.getItemWithName(name);
-                        return result.value.deleteDocument(item, result.log);
-                    }),
-                    concatMap(result => of(dbResult))
-                );
+                const item = list.getItemWithName(name);
+                return db.deleteDocument(item, log);
             }
         };
     },
@@ -272,27 +265,16 @@ const test = {
     },
     listContentOf: function (list: ListImplementation) {
         return {
-            shouldHaveSize: function (size: number, observable: Observable<any>) {
-                return observable.pipe(
-                    concatMap(next => {
-                        this.shouldHaveSizeSync(size);
-                        return of(next);
-                    })
-                );
-            },
-            shouldHaveSizeSync: function (size: number) {
+            shouldHaveSize: function (size: number, log: Logger) {
                 const actualSize = list.listContent$.getValue().value.length;
                 expect(actualSize).toBe(size);
+                return log.addTo(of(actualSize));
             },
-            shouldHaveItemAtIndex: function (index: number, observable: Observable<any>) {
+            shouldHaveItemAtIndex: function (index: number) {
                 return {
-                    withName: function (name: string) {
-                        return observable.pipe(
-                            concatMap(next => {
-                                list.listContent$.getValue()[index].shouldHaveName(name);
-                                return of(next);
-                            })
-                        );
+                    withName: function (name: string, log: Logger) {
+                        list.listContent$.getValue()[index].shouldHaveName(name);
+                        return log.addTo(of(name));
                     }
                 };
             }
@@ -685,12 +667,14 @@ describe("PouchDBDocumentList tests", () => {
         test.subscribeToEnd(observable, complete, startLog);
     });
 
+    interface ListWithTwoItemNames {
+        list: ListImplementation;
+        name1: string;
+        name2: string;
+    }
+
     interface DBWithTwoItemsSubscribeResult {
-        value: {
-            list: ListImplementation,
-            name1: string,
-            name2: string
-        };
+        value: ListWithTwoItemNames;
         log: Logger;
     }
 
@@ -735,6 +719,7 @@ describe("PouchDBDocumentList tests", () => {
             should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list);
         const list = test.createNewList();
         const name1 = "name1";
+        const name2 = "name2";
         let db: PouchDBWrapper;
         const observable = startObservable.pipe(
             concatMap((result: ValueWithLogger) =>
@@ -747,50 +732,78 @@ describe("PouchDBDocumentList tests", () => {
                 test.theList(list).shouldHaveSize(0, result.log)),
             concatMap((result: ValueWithLogger) =>
                 test.addItemTo(db, result.log).withName(name1, 100)),
+            concatMap((result: ValueWithLogger) =>
+                test.theList(list).shouldHaveSize(1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.addItemTo(db, result.log).withName(name2)),
+            concatMap((result: ValueWithLogger) =>
+                test.theList(list).shouldHaveSize(2, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.itemIn(list).atIndex(0).shouldHaveName(name1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.itemIn(list).atIndex(1).shouldHaveName(name2, result.log)),
         );
         test.subscribeToEnd(observable, complete, startLog);
-        /* test.subscribeToEnd(observable, complete, startLog);
-        dbObservable = test.afterItemWasAddedTo(dbObservable).theList(list).shouldHaveSize(1);
-        const name2 = "name2";
-        dbObservable = test.addItemTo(dbObservable).withName(name2);
-        dbObservable = test.afterItemWasAddedTo(dbObservable).theList(list).shouldHaveSize(2);
-        dbObservable = test.afterItemWasAddedTo(dbObservable).theItemIn(list).atIndex(0).shouldHaveName(name2, dbObservable);
-        dbObservable = test.afterItemWasAddedTo(dbObservable).theItemIn(list).atIndex(1).shouldHaveName(name1, dbObservable);
-        test.subscribeToEnd(dbObservable, complete);
-        */
     });
-    it("should after subscribe delete elements from the list", complete => {
-        const creationResult = createDBWithTwoItemsAndSubscribeWithList();
-        let dbObservable = creationResult.dbObservable;
-        const list = creationResult.list;
-        dbObservable = test.deleteItemFrom(dbObservable).withNameAndList(creationResult.name1, list);
-        dbObservable = test.afterItemWasDeletedFrom(dbObservable).theList(list).shouldHaveSize(1);
-        dbObservable = test.afterItemWasDeletedFrom(dbObservable).theItemIn(list).atIndex(0).shouldHaveName(creationResult.name2, dbObservable);
-        test.subscribeToEnd(dbObservable, complete);
+    const should_after_subscribe_delete_elements_from_the_list = "should after subscribe delete elements from the list";
+    it(should_after_subscribe_delete_elements_from_the_list, complete => {
+        const {startObservable, startLog} = test.createStartObservable(
+            should_after_subscribe_delete_elements_from_the_list);
+        let values: ListWithTwoItemNames;
+        let db: PouchDBWrapper;
+        const observable = startObservable.pipe(
+            concatMap((result: DBValueWithLog) => {
+                db = result.value;
+                return createDBWithTwoItemsAndSubscribeWithList(result.log);
+            }),
+            concatMap((result: DBWithTwoItemsSubscribeResult) => {
+                values = result.value;
+                return test.deleteItemFrom(db).withNameAndList(values.name1, values.list);
+            }),
+            concatMap((result: ValueWithLogger) =>
+                test.theList(values.list).shouldHaveSize(1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.itemIn(values.list).atIndex(0).shouldHaveName(values.name2, result.log))
+        );
+        test.subscribeToEnd(observable, complete, startLog);
     });
-    it("should trigger a list change event on add and delete", complete => {
+    const should_trigger_a_list_change_event_on_add_and_delete = "should trigger a list change event on add and delete";
+    it(should_trigger_a_list_change_event_on_add_and_delete, complete => {
         const list = test.createNewList();
         const name1 = "name1";
         const item1 = test.createNewItem();
         const name2 = "name2";
         const item2 = test.createNewItem();
         item1.setId(item1.getId() + "0");
-        let observable: Observable<any> = of("");
-        observable = test.listContentOf(list).shouldHaveSize(0, observable);
-        observable = item1.setNameTo(name1, observable);
-        observable = test.add(item1).to(list, observable).atIndex(0);
-        observable = test.listContentOf(list).shouldHaveSize(1, observable);
-        observable = item2.setNameTo(name2, observable);
-        observable = test.add(item2).to(list, observable).atTheBeginning();
-        observable = test.listContentOf(list).shouldHaveSize(2, observable);
-
-        observable = test.listContentOf(list).shouldHaveItemAtIndex(0, observable).withName(name2);
-        observable = test.listContentOf(list).shouldHaveItemAtIndex(1, observable).withName(name1);
-
-        observable = test.deleteItem(item2).fromList(list, observable);
-        observable = test.listContentOf(list).shouldHaveSize(1, observable);
-        observable = test.listContentOf(list).shouldHaveItemAtIndex(0, observable).withName(name1);
-        test.subscribeToEnd(observable, complete);
+        const {startObservable, startLog} = test.createStartObservable(
+            should_trigger_a_list_change_event_on_add_and_delete);
+        const observable = startObservable.pipe(
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveSize(0, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                item1.setNameTo(name1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.add(item1).to(list, result.log).atIndex(0)),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveSize(1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                item2.setNameTo(name2, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.add(item2).to(list, result.log).atTheBeginning()),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveSize(2, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name2, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveItemAtIndex(1).withName(name1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.deleteItem(item2).fromList(list, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveSize(1, result.log)),
+            concatMap((result: ValueWithLogger) =>
+                test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name1, result.log)),
+        );
+        test.subscribeToEnd(observable, complete, startLog);
     });
     /*
     it("some test", testComplete => {
