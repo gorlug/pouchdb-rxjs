@@ -4,6 +4,7 @@ import { PouchDBDocument, PouchDBDocumentGenerator } from "./PouchDBDocument";
 import { CouchDBConf } from "./CouchDBWrapper";
 import Database = PouchDB.Database;
 import { Logger, ValueWithLogger } from "./Logger";
+export declare const POUCHDB_WRAPPER_JSON_VERSION = "0.0.1";
 export interface DeletedDocument {
     _id: string;
 }

@@ -1,7 +1,5 @@
-import { PouchDBDocument, PouchDBDocumentGenerator } from "./PouchDBDocument";
-export interface TodoDocument {
-    _id: string;
-    _rev: string;
+import { PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON } from "./PouchDBDocument";
+export interface TodoDocument extends PouchDBDocumentJSON {
     name: string;
 }
 export declare class Todo extends PouchDBDocument<TodoDocument> {
@@ -12,6 +10,7 @@ export declare class Todo extends PouchDBDocument<TodoDocument> {
     protected addValuesToJSONDocument(json: TodoDocument): void;
     toString(): string;
     private setSamenessChecks;
+    protected getNameOfDoc(): string;
 }
 export declare class TodoGenerator extends PouchDBDocumentGenerator<Todo> {
     protected createDocument(json: TodoDocument): Todo;

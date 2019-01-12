@@ -3,6 +3,7 @@ import { Observable, Subscriber } from "rxjs";
 import { PouchDBWrapper } from "./PouchDBWrapper";
 export interface LogMessage {
     msg: string;
+    version: string;
     name?: string;
     trace?: string;
     params?: any;
@@ -16,6 +17,7 @@ export interface LogMessageTimestamp extends LogMessage {
 export interface LogDocumentJSON extends LogMessageTimestamp, PouchDBDocumentJSON {
 }
 export declare class LogDocument extends PouchDBDocument<LogDocumentJSON> {
+    protected version: string;
     error: string;
     msg: string;
     name: string;
@@ -25,7 +27,7 @@ export declare class LogDocument extends PouchDBDocument<LogDocumentJSON> {
     run: string;
     timestamp: string;
     private _msg;
-    private _name;
+    private _logName;
     private _trace;
     private _params;
     private _duration;
@@ -33,9 +35,11 @@ export declare class LogDocument extends PouchDBDocument<LogDocumentJSON> {
     private _timestamp;
     private _error;
     constructor(name: string, msg: string);
+    setVersion(version: string): void;
     private modifyPouchDBDocumentDebugOutput;
     protected addValuesToJSONDocument(json: LogDocumentJSON): void;
     toLogMessage(): LogMessageTimestamp;
+    protected getNameOfDoc(): string;
 }
 export declare class LogDocumentGenerator extends PouchDBDocumentGenerator<LogDocument> {
     protected createDocument(json: LogDocumentJSON): LogDocument;
