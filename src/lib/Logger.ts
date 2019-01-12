@@ -106,6 +106,10 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
         this._msg = msg;
     }
 
+    public setVersion(version: string) {
+        this.version = version;
+    }
+
     private modifyPouchDBDocumentDebugOutput(params: any) {
         for (const key in params) {
             if (params.hasOwnProperty(key)) {
@@ -128,6 +132,7 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
         json.run = this._run;
         json.timestamp = this._timestamp;
         json.error = this._error;
+        json.version = this.version;
     }
 
     toLogMessage(): LogMessageTimestamp {
@@ -145,7 +150,6 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
         if (this._error === undefined) {
             delete json.error;
         }
-        json.version = this.version;
         return json;
     }
 
@@ -165,6 +169,7 @@ export class LogDocumentGenerator extends PouchDBDocumentGenerator<LogDocument> 
         doc.run = json.run;
         doc.error = json.error;
         doc.timestamp = json.timestamp;
+        doc.setVersion(json.version);
         return doc;
     }
 
