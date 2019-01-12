@@ -1,6 +1,10 @@
+import {POUCHDB_WRAPPER_JSON_VERSION} from "./PouchDBWrapper";
+
 export interface PouchDBDocumentJSON {
     _rev: string;
     _id: string;
+    docVersion: string;
+    docName: string;
 }
 
 const IS_FULL_DEBUG = true;
@@ -10,13 +14,19 @@ export abstract class PouchDBDocument<JSONDocType extends PouchDBDocumentJSON> {
     protected _rev: string = null;
     protected _id: string;
     protected _deleted = false;
+    protected docVersion: string;
+    protected docName: string;
 
     protected samenessChecks: Array<SamenessChecker> = [];
 
     constructor() {
         this._id = new Date().valueOf() + "";
+        this.docVersion = POUCHDB_WRAPPER_JSON_VERSION;
+        this.docName = this.getNameOfDoc();
         // this._rev = "0-1";
     }
+
+    protected abstract getNameOfDoc(): string;
 
     public getId(): string {
         return this._id;
@@ -46,6 +56,22 @@ export abstract class PouchDBDocument<JSONDocType extends PouchDBDocumentJSON> {
         this._deleted = true;
     }
 
+    public getDocVersion() {
+        return this.docVersion;
+    }
+
+    public setDocVersion(version: string) {
+        this.docVersion = version;
+    }
+
+    public getDocName() {
+        return this.docName;
+    }
+
+    public setDocName(name: string) {
+        this.docName = name;
+    }
+
     isThisTheSame(other: PouchDBDocument<JSONDocType>): boolean {
         return this.samenessChecks.every((checker: SamenessChecker) => {
             return checker(other);
@@ -57,7 +83,9 @@ export abstract class PouchDBDocument<JSONDocType extends PouchDBDocumentJSON> {
     toDocument(): JSONDocType {
         const json: any = {
             _id: this._id,
-            _rev: this._rev
+            _rev: this._rev,
+            docVersion: this.docVersion,
+            docName: this.docName
         };
         this.addValuesToJSONDocument(json);
         return json;
@@ -68,8 +96,10 @@ export abstract class PouchDBDocument<JSONDocType extends PouchDBDocumentJSON> {
             return this.toDocument();
         }
         return {
-            id: this.getId(),
-            rev: this.getRev()
+            _id: this.getId(),
+            _rev: this.getRev(),
+            docVersion: this.getDocVersion(),
+            docName: this.getNameOfDoc()
         };
     }
 }
@@ -86,6 +116,8 @@ export abstract class PouchDBDocumentGenerator<T extends PouchDBDocument<any>> {
         const document: T = this.createDocument(json);
         document.setId(json._id);
         document.updateRev(json._rev);
+        document.setDocVersion(json.docVersion);
+        document.setDocName(json.docName);
         return document;
     }
 }

@@ -2,10 +2,11 @@ import {v4 as uuid} from "uuid";
 import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
 import {Observable, of, Subscriber} from "rxjs";
 import {concatMap, share} from "rxjs/operators";
-import {PouchDBWrapper} from "./PouchDBWrapper";
+import {POUCHDB_WRAPPER_JSON_VERSION, PouchDBWrapper} from "./PouchDBWrapper";
 
 export interface LogMessage  {
     msg: string;
+    version: string;
     name?: string;
     trace?: string;
     params?: any;
@@ -21,6 +22,9 @@ export interface LogMessageTimestamp extends LogMessage {
 export interface LogDocumentJSON extends LogMessageTimestamp, PouchDBDocumentJSON {}
 
 export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
+
+    protected version = POUCHDB_WRAPPER_JSON_VERSION;
+
     get error(): string {
         return this._error;
     }
@@ -37,11 +41,11 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
     }
 
     get name(): string {
-        return this._name;
+        return this._logName;
     }
 
     set name(value: string) {
-        this._name = value;
+        this._logName = value;
     }
 
     get trace(): string {
@@ -86,7 +90,7 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
     }
 
     private _msg: string;
-    private _name: string;
+    private _logName: string;
     private _trace: string;
     private _params: any;
     private _duration = -1;
@@ -98,7 +102,7 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
         super();
         this._id = uuid();
         this._timestamp = new Date().toISOString();
-        this._name = name;
+        this._logName = name;
         this._msg = msg;
     }
 
@@ -117,7 +121,7 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
 
     protected addValuesToJSONDocument(json: LogDocumentJSON) {
         json.msg = this._msg;
-        json.name = this._name;
+        json.name = this._logName;
         json.trace = this._trace;
         json.params = this._params;
         json.duration = this._duration;
@@ -141,7 +145,12 @@ export class LogDocument extends PouchDBDocument<LogDocumentJSON> {
         if (this._error === undefined) {
             delete json.error;
         }
+        json.version = this.version;
         return json;
+    }
+
+    protected getNameOfDoc(): string {
+        return "LogDocument";
     }
 
 }

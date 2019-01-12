@@ -3,11 +3,9 @@ import {BehaviorSubject, Observable, of, throwError, zip} from "rxjs";
 import {catchError, concatMap, tap} from "rxjs/operators";
 import {CouchDBConf, CouchDBWrapper, Credentials} from "./CouchDBWrapper";
 import {Logger, ValueWithLogger} from "./Logger";
-import {PouchDBDocument, PouchDBDocumentGenerator} from "./PouchDBDocument";
+import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
 
-export interface TodoDocument {
-    _id: string;
-    _rev: string;
+export interface TodoDocument extends PouchDBDocumentJSON {
     name: string;
 }
 
@@ -44,6 +42,10 @@ export class Todo extends PouchDBDocument<TodoDocument> {
                 return this.name === other.name;
             }
         ];
+    }
+
+    protected getNameOfDoc(): string {
+        return "Todo";
     }
 }
 

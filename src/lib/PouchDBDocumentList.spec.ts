@@ -38,6 +38,10 @@ export class ListItemImplementation extends PouchDBDocument<ListItemImplementati
     protected addValuesToJSONDocument(json: ListItemImplementationJSON) {
         json.name = this.name;
     }
+
+    protected getNameOfDoc(): string {
+        return "ListItemImplementation";
+    }
 }
 
 function createItem(dateMinus: number) {
@@ -816,105 +820,5 @@ describe("PouchDBDocumentList tests", () => {
         );
         test.subscribeToEnd(observable, complete, startLog);
     });
-    /*
-    it("some test", testComplete => {
-       class CustomObserver<T> implements Observer<T> {
-
-           private original: PartialObserver<T>;
-           closed: boolean;
-
-           constructor(original: PartialObserver<T>) {
-              this.original = original;
-              this.closed = original.closed;
-           }
-           complete() {
-               console.log("go complete");
-               if (this.original.complete) {
-                   this.original.complete();
-               }
-           }
-           error(err: any) {
-               console.log("go error");
-               if (this.original.error) {
-                   this.original.error(err);
-               }
-           }
-           next(value: T) {
-               console.log("go next", value);
-               if (this.original.next) {
-                   this.original.next(value);
-               }
-           }
-       }
-       class CustomObservable<T> extends Observable<T> {
-
-           static create: Function = <T>(subscribe?: (subscriber: Subscriber<T>) => TeardownLogic) => {
-               console.log("wohoo create");
-               return new CustomObservable<T>(subscribe);
-           }
-
-           subscribe(observerOrNext?: PartialObserver<T> | CustomObserver<T> | ((value: T) => void) | ((value: T, log: Logger) => void),
-                     error?: (error: any) => void,
-                     complete?: () => void): Subscription {
-               console.log("weeee subscribe", typeof observerOrNext);
-               if (observerOrNext instanceof Function) {
-                   console.log("is function");
-                   const next = function(value: T) {
-                       observerOrNext.call(observerOrNext, value, Logger.getLogger("something test"));
-                   };
-                   return super.subscribe(next, error, complete);
-               }
-               return super.subscribe(new CustomObserver(observerOrNext));
-           }
-           pipe<R>(...operations: OperatorFunction<any, any>[]): CustomObservable<R> {
-               return super.pipe(...operations);
-           }
-       }
-       let observable: CustomObservable<string> = CustomObservable.create(emitter => {
-           emitter.next("blubb");
-           emitter.complete();
-       });
-       function concatMapCustom<T>(project: (value: T, log: Logger) => CustomObservable<T>) {
-            return concatMap((value: T) => {
-                return project.call(project, value, Logger.getLogger("woah concatMap"));
-            });
-       }
-       observable = observable.pipe(
-           concatMapCustom((next, log: Logger) => {
-               return CustomObservable.create(emitter => {
-                   log.debug("nom nom", next);
-                   emitter.next("jo ho concatMapCustom");
-               });
-           })
-       );
-       /* observable.subscribe({
-           next(value) {
-               console.log("bbq", value);
-               testComplete();
-           },
-           error(err) {
-               console.log("wah error", err);
-           }
-       });
-       observable.subscribe((next, log: Logger) => {
-           log.debug("jo log");
-           console.log(observable);
-           console.log("oh hai next", next);
-           testComplete();
-       });*/
-    /* const item = new Todo("lolcopter");
-    const testLog = Logger.getLogger("run stuff");
-    testLog.setTrace(Logger.generateTrace());
-    observable.subscribe(next => {
-         testLog.runAsync("some name", "trying out this run thing for the first time",
-             { something: "somewhere", item: item}, complete => {
-             console.log("stuff happens here");
-             setTimeout(() => {
-                 console.log("waited a second");
-                 complete();
-                 testComplete();
-             }, 1000);
-         });
-    });
- }); */
 });
+
