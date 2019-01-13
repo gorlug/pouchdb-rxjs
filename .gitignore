@@ -8,4 +8,5 @@ coverage
 *.log
 
 yarn.lock
-build/docs
+
+build
