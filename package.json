@@ -1,5 +1,5 @@
 {
-  "name": "@gorlug/pouchdb",
+  "name": "@gorlug/pouchdb-rxjs",
   "version": "0.0.1",
   "description": "Wrapper around pouchdb using rxjs",
   "main": "build/main/index.js",
