@@ -168,7 +168,7 @@ const test = {
                 return this.asAUniqueItemTo(list, log);
             },
             asAUniqueItemTo: function (list: ListImplementation, log: Logger) {
-                list.addUniqueItem(item, log);
+                return list.addUniqueItem(item, log);
             }
         };
     },
@@ -177,7 +177,7 @@ const test = {
             atIndex: function (index: number) {
                 return {
                     shouldHaveName: function (name: string, log: Logger) {
-                        list.getItemAtIndex(index, log).pipe(
+                        return list.getItemAtIndex(index, log).pipe(
                             concatMap(result => {
                                 const item: ListItemImplementation = result.value;
                                 item.shouldHaveName(name);
@@ -280,7 +280,7 @@ const test = {
                     withName: function (name: string, log: Logger) {
                         log.logMessage(LOG_NAME, "list content should have item at index",
                             {expected_name: name, expected_index: index});
-                        const item: ListItemImplementation = list.listContent$.getValue()[index];
+                        const item: ListItemImplementation = list.listContent$.getValue().value[index];
                         if (item === undefined) {
                             const errorMsg = "item in list content at index " + index + " is undefined";
                             log.logError(LOG_NAME, "list content should have item at index error", errorMsg);
@@ -675,9 +675,11 @@ describe("PouchDBDocumentList tests", () => {
                 return test.tryToAdd(item).asAUniqueItemTo(values.list, result.log);
             }),
             concatMap((result: ValueWithLogger) =>
+                test.theList(values.list).shouldHaveSize(3, result.log)),
+            concatMap((result: ValueWithLogger) =>
                 test.tryToAdd(item).againAsAUniqueItemTo(values.list, result.log)),
             concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(2, result.log))
+                test.theList(values.list).shouldHaveSize(3, result.log))
         );
         test.subscribeToEnd(observable, complete, startLog);
     });
@@ -686,6 +688,7 @@ describe("PouchDBDocumentList tests", () => {
         list: ListImplementation;
         name1: string;
         name2: string;
+        db: PouchDBWrapper;
     }
 
     interface DBWithTwoItemsSubscribeResult {
@@ -699,16 +702,19 @@ describe("PouchDBDocumentList tests", () => {
         const name1 = "name1";
         const name2 = "name2";
         const list: ListImplementation = test.createNewList();
+        let db: PouchDBWrapper;
         return test.createLocalDB().pipe(
-            concatMap((result: DBValueWithLog) =>
-                test.addItemTo(result.value, result.log).withName(name1, 100)),
+            concatMap((result: DBValueWithLog) => {
+                db = result.value;
+                return test.addItemTo(result.value, result.log).withName(name1, 100);
+            }),
             concatMap((result: ValueWithLogger) =>
                 test.addItemTo(result.value, result.log).withName(name2)),
             concatMap((result: ValueWithLogger) =>
                 test.make(list).subscribeTo(result)),
             concatMap((result: ValueWithLogger) => {
                 startLog.complete();
-                return result.log.addTo(of({list, name1, name2}));
+                return result.log.addTo(of({list, name1, name2, db}));
             })
         );
     }
@@ -754,9 +760,9 @@ describe("PouchDBDocumentList tests", () => {
             concatMap((result: ValueWithLogger) =>
                 test.theList(list).shouldHaveSize(2, result.log)),
             concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(0).shouldHaveName(name1, result.log)),
+                test.itemIn(list).atIndex(0).shouldHaveName(name2, result.log)),
             concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(1).shouldHaveName(name2, result.log)),
+                test.itemIn(list).atIndex(1).shouldHaveName(name1, result.log)),
         );
         test.subscribeToEnd(observable, complete, startLog);
     });
@@ -765,15 +771,12 @@ describe("PouchDBDocumentList tests", () => {
         const {startObservable, startLog} = test.createStartObservable(
             should_after_subscribe_delete_elements_from_the_list);
         let values: ListWithTwoItemNames;
-        let db: PouchDBWrapper;
         const observable = startObservable.pipe(
-            concatMap((result: DBValueWithLog) => {
-                db = result.value;
-                return createDBWithTwoItemsAndSubscribeWithList(result.log);
-            }),
+            concatMap((result: DBValueWithLog) =>
+                createDBWithTwoItemsAndSubscribeWithList(result.log)),
             concatMap((result: DBWithTwoItemsSubscribeResult) => {
                 values = result.value;
-                return test.deleteItemFrom(db).withNameAndList(values.name1, values.list);
+                return test.deleteItemFrom(values.db, result.log).withNameAndList(values.name1, values.list);
             }),
             concatMap((result: ValueWithLogger) =>
                 test.theList(values.list).shouldHaveSize(1, result.log)),

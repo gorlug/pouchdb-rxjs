@@ -162,9 +162,11 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         log = log.start(LOG_NAME, "addUniqueItem", item.getDebugInfo());
         return Observable.create(emitter => {
             const filtered = this.items.filter( (value:  T) => {
-                this.isTheSameCheck(item, value);
-                log.logMessage(LOG_NAME, "addUniqueItem item is already added", item.getDebugInfo());
-                log.addToSubscriberNextAndComplete(emitter, false);
+                if (this.isTheSameCheck(item, value)) {
+                    log.logMessage(LOG_NAME, "addUniqueItem item is already added", item.getDebugInfo());
+                    return true;
+                }
+                return false;
             });
             if (filtered.length === 0) {
                 this.addItem(item, log).subscribe(
@@ -172,6 +174,8 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                     error => emitter.error(error),
                     () => {}
                 );
+            } else {
+                log.addToSubscriberNextAndComplete(emitter, false);
             }
         });
     }
