@@ -66,9 +66,9 @@ const LOCAL_COUCHDB_CREDENTIALS: Credentials = {
     password: "admin"
 };
 const COUCHDB_CONF = new CouchDBConf();
-COUCHDB_CONF.host = "couchdb-test";
+COUCHDB_CONF.setHost("couchdb-test");
 COUCHDB_CONF.setHttp();
-COUCHDB_CONF.port = 5984;
+COUCHDB_CONF.setPort(5984);
 COUCHDB_CONF.setCredentials(LOCAL_COUCHDB_CREDENTIALS);
 const dbName = "test";
 
@@ -84,9 +84,9 @@ const credentials2: Credentials = {
 const LOG_NAME = "PouchDBWrapperTests";
 
 const LOG_DB_CONF = new CouchDBConf();
-LOG_DB_CONF.dbName = "dev-log";
-LOG_DB_CONF.port = 5984;
-LOG_DB_CONF.host = "couchdb-test";
+LOG_DB_CONF.setDBName("dev-log");
+LOG_DB_CONF.setPort(5984);
+LOG_DB_CONF.setHost("couchdb-test");
 LOG_DB_CONF.setHttp();
 LOG_DB_CONF.setCredentials({
     username: "loggingUser",
@@ -120,7 +120,7 @@ describe("PouchDBWrapper tests", () => {
     }
 
     beforeEach((complete) => {
-        COUCHDB_CONF.dbName = dbName;
+        COUCHDB_CONF.setDBName(dbName);
         COUCHDB_CONF.setCredentials(LOCAL_COUCHDB_CREDENTIALS);
         const log = getLogger();
         const startLog = log.start(LOG_NAME, "beforeEach delete CouchDB " + dbName);
@@ -144,7 +144,7 @@ describe("PouchDBWrapper tests", () => {
         )
         .subscribe({
             next(response) {
-                COUCHDB_CONF.dbName = dbName;
+                COUCHDB_CONF.setDBName(dbName);
                 startLog.complete().pipe(
                     tap(() => log.logMessage(LOG_NAME, "beforeEach end",
                         {run: "end", response: response})))
@@ -159,7 +159,7 @@ describe("PouchDBWrapper tests", () => {
                 });
             },
             error(error) {
-                COUCHDB_CONF.dbName = dbName;
+                COUCHDB_CONF.setDBName(dbName);
                 startLog.logError(LOG_NAME, "beforeEach error", "something went wrong",
                     { error: error}).subscribe({
                     error(innerError) {
@@ -178,15 +178,15 @@ describe("PouchDBWrapper tests", () => {
     it("should construct a couchdb AjaxRequest with authentication", () => {
         const log = getLogger();
         const conf = new CouchDBConf();
-        conf.host = "localhost";
+        conf.setHost("localhost");
         conf.setHttp();
-        conf.port = 5984;
+        conf.setPort(5984);
         const credentials = {
             username: "admin",
             password: "admin"
         };
         conf.setCredentials(credentials);
-        conf.dbName = "test";
+        conf.setDBName("test");
         const request = conf.toRequest(log);
         expect(request.url).toBe("http://localhost:5984/test");
         expect(request.crossDomain).toBeTruthy();
@@ -357,7 +357,7 @@ describe("PouchDBWrapper tests", () => {
             password: "testpassword"
         };
         let createResult;
-        COUCHDB_CONF.dbName = dbName;
+        COUCHDB_CONF.setDBName(dbName);
         const log = getLogger();
         CouchDBWrapper.createCouchDBDatabase(COUCHDB_CONF, log).pipe(
             catchError(error => {
@@ -369,7 +369,7 @@ describe("PouchDBWrapper tests", () => {
                 }
             }),
             concatMap(result => {
-                COUCHDB_CONF.dbName = dbName;
+                COUCHDB_CONF.setDBName(dbName);
                 return CouchDBWrapper.createUser(COUCHDB_CONF, credentials, log);
             }),
             concatMap(result => {
@@ -403,7 +403,7 @@ describe("PouchDBWrapper tests", () => {
                 return CouchDBWrapper.createUser(COUCHDB_CONF, credentials2, result.log);
             }),
             concatMap(result => {
-                COUCHDB_CONF.dbName = "test";
+                COUCHDB_CONF.setDBName("test");
                 return CouchDBWrapper.setDBAuthorization(COUCHDB_CONF, [credentials1.username], result.log);
             }),
             // save with authorized user should work
@@ -519,7 +519,7 @@ describe("PouchDBWrapper tests", () => {
         const logName = LOG_NAME + "_createSyncDatabases";
         COUCHDB_CONF.setGenerator(new TodoGenerator());
         const otherDBConf = COUCHDB_CONF.clone();
-        otherDBConf.dbName = "anothertest";
+        otherDBConf.setDBName("anothertest");
         let db1: PouchDBWrapper;
         let db2: PouchDBWrapper;
         const log = getLogger();

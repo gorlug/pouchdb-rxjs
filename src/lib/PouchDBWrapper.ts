@@ -39,17 +39,35 @@ export interface DBValueWithLog {
     log: Logger;
 }
 
+/**
+ * Wrapper around the pouchdb API that returns an observable for every call.
+ * Every method also need to be provided with a [[Logger]] instance. The return values
+ * also all contain a reference to a Logger instance. The Logger enables tracing method
+ * calls initiated by a single action using a trace id.
+ */
 export class PouchDBWrapper {
 
     protected db: Database;
     protected url: string;
     private generator: PouchDBDocumentGenerator<any>;
 
+    /**
+     * Observable for saved documents.
+     */
     public docSaved$: Subject<ValueWithLogger> = new Subject();
+    /**
+     * Observable for deleted documents.
+     */
     public docDeleted$: Subject<{value: DeletedDocument, log: Logger}> = new Subject();
 
+    /**
+     * Load a local pouchdb inside the browser.
+     * @param name the name of the database
+     * @param generator the generator for the documents of the database
+     * @param log
+     */
     static loadLocalDB(name: string, generator: PouchDBDocumentGenerator<any>, log: Logger):
-            Observable<{value: PouchDBWrapper, log: Logger}> {
+            Observable<DBValueWithLog> {
         log = log.start(this.getLogName(), "loadLocalDB loading local db", {name: name});
         const wrapper = new PouchDBWrapper();
         wrapper.generator = generator;
@@ -57,6 +75,11 @@ export class PouchDBWrapper {
         return log.addTo(of(wrapper));
     }
 
+    /**
+     * Destroys a local db in the browser.
+     * @param name name of the database to be destroyed
+     * @param log
+     */
     static destroyLocalDB(name: string, log: Logger): Observable<ValueWithLogger> {
         log = log.start(this.getLogName(), "destroyLocalDB destroying local db", {name: name});
         const db = new PouchDB(name);
@@ -76,23 +99,35 @@ export class PouchDBWrapper {
     static getLogName() {
         return "PouchDBWrapper";
     }
+
+    /**
+     * Loads an external couchdb database.
+     * @param conf configuration object of the couchdb
+     * @param log
+     */
     static loadExternalDB(conf: CouchDBConf, log: Logger): Observable<{value: PouchDBWrapper, log: Logger}> {
         log = log.start(this.getLogName(), "loadExternalDB loading external db",
             conf.getDebugInfo());
         const wrapper = new PouchDBWrapper();
-        wrapper.generator = conf.generator;
+        wrapper.generator = conf.getGenerator();
         wrapper.url = conf.toUrl();
         const db = new PouchDB(conf.toUrl(), {
             skip_setup: true,
             auth: {
-                username: conf.credentials.username,
-                password: conf.credentials.password
+                username: conf.getCredentials().username,
+                password: conf.getCredentials().password
             }
         });
         wrapper.db = db;
         return log.addTo(of(wrapper));
     }
 
+    /**
+     * Keeps the documents of two databases in sync.
+     * @param firstDB
+     * @param secondDB
+     * @param log
+     */
     static syncDBs(firstDB: PouchDBWrapper, secondDB: PouchDBWrapper, log: Logger) {
         log.logMessage(this.getLogName(), "syncDBs initiating sync",
             { firstDB: firstDB.getDebugInfo({}), secondDB: secondDB.getDebugInfo({})});
@@ -139,6 +174,11 @@ export class PouchDBWrapper {
         });
     }
 
+    /**
+     * Replicate all documents from the current pouchdb to a target pouchdb.
+     * @param to the target pouchdb
+     * @param log
+     */
     replicateTo(to: PouchDBWrapper, log: Logger) {
         log = log.start(PouchDBWrapper.getLogName(), "replicateTo replicating data to another db",
             {from: this.getDebugInfo(), to: to.getDebugInfo()});
@@ -154,6 +194,9 @@ export class PouchDBWrapper {
             })));
     }
 
+    /**
+     * Returns the underlying pouchdb object.
+     */
     getPouchDB(): Database {
         return this.db;
     }
@@ -174,6 +217,11 @@ export class PouchDBWrapper {
         return log.start(PouchDBWrapper.getLogName(), dsc, this.getDebugInfo({doc: doc.getDebugInfo()}));
     }
 
+    /**
+     * Save a document to the pouchdb.
+     * @param document the document to be saved
+     * @param log
+     */
     saveDocument(document: PouchDBDocument<any>, log: Logger): Observable<ValueWithLogger> {
         log = this.logStart("saveDocument", log, document);
         const json = document.toDocument();
@@ -214,6 +262,11 @@ export class PouchDBWrapper {
         return throwError(errorMsg);
     }
 
+    /**
+     * Returns the document with the given id or throws an error if it does not exist.
+     * @param id the id of the document
+     * @param log
+     */
     getDocument(id: string, log: Logger): Observable<ValueWithLogger> {
         log = log.start(PouchDBWrapper.getLogName(), "getDocument getting document",
             this.getDebugInfo({id: id}));
@@ -227,6 +280,10 @@ export class PouchDBWrapper {
         ));
     }
 
+    /**
+     * Return all documents inside the pouchdb.
+     * @param log
+     */
     getAllDocuments(log: Logger): Observable<ValueWithLogger> {
         log = log.start(PouchDBWrapper.getLogName(), "getAllDocuments " +
             "getting all documents of db", this.getDebugInfo({}));
@@ -247,6 +304,11 @@ export class PouchDBWrapper {
         return of(list);
     }
 
+    /**
+     * Deletes the document from the pouchdb. Returns the document with the updated delete revision.
+     * @param document the document to be deleted
+     * @param log
+     */
     deleteDocument(document: PouchDBDocument<any>, log: Logger):
             Observable<ValueWithLogger> {
         log = log.start(PouchDBWrapper.getLogName(), "deleteDocument deleting a document",
@@ -271,6 +333,10 @@ export class PouchDBWrapper {
         return this.generator;
     }
 
+    /**
+     * Monitors all changes of the pouchdb by emitting saved documents. Useful for monitoring an external couchdb.
+     * @param log
+     */
     listenToChanges(log: Logger) {
         const silent = log.getSilent();
         log.logMessage(PouchDBWrapper.getLogName(), "listenToChanges listening to changes start", this.getDebugInfo());

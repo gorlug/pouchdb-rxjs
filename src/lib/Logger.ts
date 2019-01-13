@@ -180,6 +180,9 @@ export interface ValueWithLogger {
     log: Logger;
 }
 
+/**
+ * Logger used for tracing function calls. This can be achieved by using a trace id.
+ */
 export class Logger {
 
     private name: string;
@@ -194,12 +197,21 @@ export class Logger {
         return new Logger(name);
     }
 
+    /**
+     * Creates a logger with a trace id.
+     * @param name
+     */
     static getLoggerTrace(name = ""): Logger {
         const logger = new Logger(name);
         logger.setTrace(Logger.generateTrace());
         return logger;
     }
 
+    /**
+     * Gets a logger with a trace id that will write logs to the given pouchdb.
+     * @param db
+     * @param name
+     */
     static getLoggerTraceWithDB(db: PouchDBWrapper, name = "") {
         const logger = this.getLoggerTrace(name);
         logger.setLogDB(db);
@@ -238,6 +250,11 @@ export class Logger {
         return this.name;
     }
 
+    /**
+     * Completes a previous [[start]] call by writing out the duration since the start
+     * date.
+     * @param error
+     */
     complete(error?: string) {
         if (this.startTime !== -1) {
             const observable = this.logEnd(this.name, this.dsc, this.params,
@@ -311,6 +328,12 @@ export class Logger {
         return this.log(message);
     }
 
+    /**
+     * Log a message and also save the start date of the call.
+     * @param name
+     * @param dsc
+     * @param params
+     */
     start(name: string, dsc: string, params = {}): Logger {
         this.complete();
         const log = new Logger(name);

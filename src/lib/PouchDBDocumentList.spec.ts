@@ -387,9 +387,9 @@ const test = {
 
 let logDB: PouchDBWrapper;
 const LOG_DB_CONF = new CouchDBConf();
-LOG_DB_CONF.dbName = "dev-log";
-LOG_DB_CONF.port = 5984;
-LOG_DB_CONF.host = "couchdb-test";
+LOG_DB_CONF.setDBName("dev-log");
+LOG_DB_CONF.setPort(5984);
+LOG_DB_CONF.setHost("couchdb-test");
 LOG_DB_CONF.setHttp();
 LOG_DB_CONF.setCredentials({
     username: "loggingUser",

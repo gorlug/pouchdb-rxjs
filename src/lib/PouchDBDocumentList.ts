@@ -11,8 +11,15 @@ export interface ItemWithLogger<T> {
     log: Logger;
 }
 
+/**
+ * List representation of pouchdb documents. This allows for example the custom sorting
+ * of these documents.
+ */
 export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
+    /**
+     * This observable holds the current view of the list.
+     */
     listContent$: BehaviorSubject<{value: T[], log: Logger}> = new BehaviorSubject(
         {value: [], log: Logger.getLoggerTrace()});
     protected items: T[] = [];
@@ -27,6 +34,11 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
+    /**
+     * Moves the given item document up one index in the list.
+     * @param item
+     * @param log
+     */
     public moveUp(item: T, log: Logger): Observable<ItemWithLogger<T>> {
         const logStart = log.start(LOG_NAME, "moveUp", item.getDebugInfo());
         return this.getCurrentIndexOfItem(item, log).pipe(
@@ -54,6 +66,11 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         this.items.splice(newIndex, 0, item);
     }
 
+    /**
+     * Moves the given item document up down index in the list.
+     * @param item
+     * @param log
+     */
     moveDown(item: T, log: Logger): Observable<ItemWithLogger<T>> {
         const run = log.start(LOG_NAME, "moveDown", item.getDebugInfo());
         return this.getCurrentIndexOfItem(item, log).pipe(
@@ -95,6 +112,12 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
     protected sort() {}
 
+    /**
+     * If the item with the same idalready exists this will replace that item with the new version
+     * of that item. Otherwise it will simply add the item.
+     * @param item
+     * @param log
+     */
     addOrUpdateItem(item: T, log: Logger): Observable<T> {
         log = log.start(LOG_NAME, "addOrUpdateItem", item.getDebugInfo());
         return Observable.create(emitter => {
@@ -158,6 +181,12 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         return item.isTheSameDocumentAs(value);
     }
 
+    /**
+     * Works similar to [[addOrUpdateItem]] but will check if the an item with the same
+     * values already exists. If it does it will not add this item.
+     * @param item
+     * @param log
+     */
     public addUniqueItem(item: T, log: Logger): Observable<{value: boolean, log: Logger}> {
         log = log.start(LOG_NAME, "addUniqueItem", item.getDebugInfo());
         return Observable.create(emitter => {
@@ -205,6 +234,12 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
+    /**
+     * By subscribing to a [[PouchDBWrapper]] all changes to that pouchdb are reflected
+     * in this list.
+     * @param db
+     * @param log
+     */
     public subscribeTo(db: PouchDBWrapper, log: Logger): Observable<DBValueWithLog> {
         const logStart = log.start(LOG_NAME, "subscribeTo", db.getDebugInfo());
         return db.getAllDocuments(log).pipe(
@@ -264,6 +299,11 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
+    /**
+     * Removes a deleted item from the list.
+     * @param deletedItem
+     * @param log
+     */
     deleteDeletedItem(deletedItem: DeletedDocument, log: Logger): Observable<ValueWithLogger> {
         log = log.start(LOG_NAME, "deleteDeletedItem", deletedItem);
         return Observable.create(emitter => {

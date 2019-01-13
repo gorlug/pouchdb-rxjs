@@ -11,15 +11,19 @@ export interface Credentials {
     password: string;
 }
 
+/**
+ * This class is used to build a configuration object to connect
+ * to a couchdb instance.
+ */
 export class CouchDBConf {
-    host: string;
-    protocol: string;
-    dbName: string;
-    port: number;
-    credentials: Credentials;
-    generator: PouchDBDocumentGenerator<any>;
-    btoa: Function;
-    createXHR: () => XMLHttpRequest;
+    private host: string;
+    private protocol: string;
+    private dbName: string;
+    private port: number;
+    private credentials: Credentials;
+    private generator: PouchDBDocumentGenerator<any>;
+    private btoa: Function;
+    private createXHR: () => XMLHttpRequest;
 
     clone(): CouchDBConf {
         const clone = new CouchDBConf();
@@ -30,6 +34,18 @@ export class CouchDBConf {
         clone.credentials = this.credentials;
         clone.generator = this.generator;
         return clone;
+    }
+
+    setHost(host: string) {
+        this.host = host;
+    }
+
+    setPort(port: number) {
+        this.port = port;
+    }
+
+    setDBName(dbName: string) {
+        this.dbName = dbName;
     }
 
     setHttp() {
@@ -44,8 +60,16 @@ export class CouchDBConf {
         this.generator = generator;
     }
 
+    getGenerator(): PouchDBDocumentGenerator<any> {
+        return this.generator;
+    }
+
     setCredentials(credentials: Credentials) {
         this.credentials = credentials;
+    }
+
+    getCredentials(): Credentials {
+        return this.credentials;
     }
 
     toBaseUrl() {
@@ -105,6 +129,9 @@ export class CouchDBConf {
     }
 }
 
+/**
+ * A utility class for managing an external couchdb.
+ */
 export class CouchDBWrapper {
 
     static getLogName() {
@@ -126,17 +153,14 @@ export class CouchDBWrapper {
                 return of(response);
             })
         );
-        /* request$.subscribe({
-            next(response) {
-                console.log("response", response.status, response.response);
-            },
-            error(error) {
-                console.log("error", error.status, error.response);
-            }
-        });*/
         return request$;
     }
 
+    /**
+     * Creates a new couchdb.
+     * @param conf configuration info for the new couchdb
+     * @param log
+     */
     static createCouchDBDatabase(conf: CouchDBConf, log: Logger):
         Observable<{ value: AjaxResponse, log: Logger}> {
         log = log.start(this.getLogName(), "createCouchDBDatabase creating a new database",
@@ -169,6 +193,11 @@ export class CouchDBWrapper {
         return {status: value.status, response: value.response};
     }
 
+    /**
+     * Deletes a couchdb.
+     * @param conf
+     * @param log
+     */
     static deleteCouchDBDatabase(conf: CouchDBConf, log: Logger): Observable<{value: AjaxResponse, log: Logger}> {
         log = log.start(this.getLogName(), "deleteCouchDBDatabase deleting database", conf.getDebugInfo());
         const ajaxRequest = conf.toRequest(log);
@@ -185,9 +214,15 @@ export class CouchDBWrapper {
         return of(result);
     }
 
+    /**
+     * Creates a new couchdb user.
+     * @param conf
+     * @param userCredentials
+     * @param log
+     */
     static createUser(conf: CouchDBConf, userCredentials: Credentials, log: Logger):
             Observable<{value: any, log: Logger}> {
-        conf.dbName = "_users";
+        conf.setDBName("_users");
         return PouchDBWrapper.loadExternalDB(conf, log).pipe(
             concatMap(result => this.signUpUser(result, conf, userCredentials)),
             concatMap(createResponse => {
@@ -226,9 +261,15 @@ export class CouchDBWrapper {
         return logParams;
     }
 
+    /**
+     * Deletes a couchdb user.
+     * @param conf
+     * @param username
+     * @param log
+     */
     static deleteUser(conf: CouchDBConf, username: string, log: Logger):
             Observable<{value: any, log: Logger}> {
-        conf.dbName = "_users";
+        conf.setDBName("_users");
         return log.addTo(PouchDBWrapper.loadExternalDB(conf, log).pipe(
             concatMap(result => {
                 log = result.log;
@@ -264,6 +305,12 @@ export class CouchDBWrapper {
         return throwError(error);
     }
 
+    /**
+     * Authorizes certain users to access a couchdb.
+     * @param conf
+     * @param members array of users to be authorized
+     * @param log
+     */
     static setDBAuthorization(conf: CouchDBConf, members: string[], log: Logger):
             Observable<ValueWithLogger> {
         const ajaxRequest = conf.toRequest(log);
