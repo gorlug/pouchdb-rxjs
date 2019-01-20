@@ -106,6 +106,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private itemAddedEvent(log: Logger) {
+        log.logMessage(LOG_NAME, "itemAddedEvent", {length: this.items.length});
         this.listContent$.next(log.addToValue(this.items));
         this.sort();
     }
@@ -113,32 +114,69 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     protected sort() {}
 
     /**
-     * If the item with the same idalready exists this will replace that item with the new version
+     * If the item with the same id already exists this will replace that item with the new version
      * of that item. Otherwise it will simply add the item.
      * @param item
      * @param log
      */
-    addOrUpdateItem(item: T, log: Logger): Observable<T> {
-        log = log.start(LOG_NAME, "addOrUpdateItem", item.getDebugInfo());
+    addOrUpdateItem(item: T, log: Logger): Observable<{value: T, log: Logger}> {
+        log.logMessage(LOG_NAME, "addOrUpdateItem", item.getDebugInfo());
+        return this.addOrUpdateItemAtIndex(item, -1, log);
+    }
+
+    /**
+     * Like [[addOrUpdateItem]] but it lets you specify at which index to put the item if it is not
+     * in the list yet.
+     * @param item
+     * @param log
+     */
+    addOrUpdateItemAtIndex(item: T, index: number, log: Logger): Observable<{value: T, log: Logger}> {
+        log = log.start(LOG_NAME, "addOrUpdateItemAtIndex", {index: index, item: item.getDebugInfo()});
         return Observable.create(emitter => {
-            let existingIndex = -1;
-            let existingItem = null;
-            this.items.filter((listItem, index) => {
-                if (item.getId() === listItem.getId()) {
-                    existingIndex = index;
-                    existingItem = listItem;
-                }
-            });
-            if (existingIndex !== -1) {
-                this.deleteItem(existingItem, log).pipe(
-                    concatMap(result => this.addItemAtIndex(existingIndex, item, result.log) )
-                ).subscribe(emitter);
-            } else {
-                log.logMessage(LOG_NAME, "addOrUpdateItem pushing as new item", item.getDebugInfo());
-                this.pushItem(item, log);
-                log.addToSubscriberNextAndComplete(emitter, item);
+            this.addOrUpdateItemAtIndexSync(item, index, log);
+            log.addToSubscriberNextAndComplete(emitter, item);
+        });
+    }
+
+    private addOrUpdateItemAtIndexSync(item: T, index: number, log: Logger) {
+        const {existingIndex, existingItem, isItemFound} = this.lookForItemWithTheSameId(item, log);
+        if (isItemFound) {
+            this.replaceItemAtIndex(existingItem, existingIndex, item, log);
+        } else {
+            this.addNewItemAtIndex(log, item, index);
+        }
+    }
+
+    private addNewItemAtIndex(log: Logger, item: T, index: number) {
+        log.logMessage(LOG_NAME, "addNewItemAtIndex", item.getDebugInfo());
+        if (index === -1) {
+            this.pushItem(item, log);
+        } else {
+            this.addItemToListAtIndex(index, item, log);
+        }
+    }
+
+    private replaceItemAtIndex(existingItem: T, existingIndex: number, replacementItem: T, log: Logger) {
+        log.logMessage(LOG_NAME, "replaceItemAtIndex", {existingItem: existingItem.getDebugInfo(),
+            existingIndex: existingIndex, replacementItem: replacementItem.getDebugInfo()});
+        this.deleteItemFromList(existingItem, log);
+        this.addItemToListAtIndex(existingIndex, replacementItem, log);
+    }
+
+    private lookForItemWithTheSameId(item: T, log: Logger) {
+        let existingIndex = -1;
+        let existingItem: T = null;
+        let isItemFound = false;
+        this.items.filter((listItem, itemIndex) => {
+            if (item.getId() === listItem.getId()) {
+                existingIndex = itemIndex;
+                existingItem = listItem;
+                isItemFound = true;
             }
         });
+        log.logMessage(LOG_NAME, "lookForItemWithTheSameId", {item: item.getDebugInfo(), existingIndex: existingIndex,
+            isItemFound: isItemFound, existingItem: existingItem !== null ? existingItem.getDebugInfo() : undefined});
+        return {existingIndex, existingItem, isItemFound};
     }
 
     public getItems(log: Logger): Observable<{value: Array<T>, log: Logger}> {
@@ -168,13 +206,17 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     public deleteItem(itemToDelete: T, log: Logger): Observable<ItemWithLogger<T>> {
         log = log.start(LOG_NAME, "deleteItem", itemToDelete.getDebugInfo());
         return Observable.create(emitter => {
-            this.items = this.items.filter(item => {
-                return !this.isTheSameCheck(item, itemToDelete);
-            });
-            log.logMessage(LOG_NAME, "deleteItem remaining item length", { length: this.items.length});
+            this.deleteItemFromList(itemToDelete, log);
             this.listContent$.next(log.addToValue(this.items));
             log.addToSubscriberNextAndComplete(emitter, itemToDelete);
         });
+    }
+
+    private deleteItemFromList(itemToDelete: T, log: Logger) {
+        this.items = this.items.filter(item => {
+            return !this.isTheSameCheck(item, itemToDelete);
+        });
+        log.logMessage(LOG_NAME, "deleteItem remaining item length", {length: this.items.length});
     }
 
     private isTheSameCheck(item: T, value: T) {
@@ -273,7 +315,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
             const doc: T = next.value;
             const logStart = next.log.start(LOG_NAME, "subscribeToDocSaved adding new saved document " +
                 "at beginning", doc.getDebugInfo());
-            this.addItemToListAtIndex(0, doc, log);
+            this.addOrUpdateItemAtIndexSync(doc, 0, log);
             logStart.complete();
         }, error => {
             Logger.getLoggerTraceWithDB(log.getLogDB()).logError(LOG_NAME, "something went wrong while subscribing to new documents " +
