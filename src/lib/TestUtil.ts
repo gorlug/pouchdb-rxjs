@@ -4,13 +4,20 @@ import {concatMap} from "rxjs/operators";
 
 export class TestUtil {
 
-    static operatorsToObservable(operators: OperatorFunction<any, any>[], log: Logger): Observable<any> {
+    static operatorsToObservable(operators: (OperatorFunction<any, any>|OperatorFunction<any, any>[])[], log: Logger): Observable<any> {
         return TestUtil.pipeOperators(log.addTo(of("")), operators);
     }
 
-    static pipeOperators(observable: Observable<any>, operators: OperatorFunction<any, any>[]): Observable<any> {
-        operators.forEach(operator => {
-            observable = observable.pipe(operator);
+    static pipeOperators(observable: Observable<any>, operators:
+        (OperatorFunction<any, any>|OperatorFunction<any, any>[])[]): Observable<any> {
+        operators.forEach((object: any) => {
+            if (object.forEach === undefined) {
+                const singleOperator = object as OperatorFunction<any, any>;
+                observable = observable.pipe(singleOperator);
+            } else {
+                const operatorArray = object as OperatorFunction<any, any>[];
+                observable = TestUtil.pipeOperators(observable, operatorArray);
+            }
         });
         return observable;
     }
