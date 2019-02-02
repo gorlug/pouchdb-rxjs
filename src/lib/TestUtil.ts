@@ -34,6 +34,7 @@ export class TestUtil {
             error(error) {
                 endLog.logError(endLog.getName(), "complete fail", error + "");
                 fail("" + error);
+                complete();
             },
             complete() {
                 complete();
