@@ -24,6 +24,7 @@ export class CouchDBConf {
     private generator: PouchDBDocumentGenerator<any>;
     private btoa: Function;
     private createXHR: () => XMLHttpRequest;
+    private baseUrl: string;
 
     clone(): CouchDBConf {
         const clone = new CouchDBConf();
@@ -34,6 +35,10 @@ export class CouchDBConf {
         clone.credentials = this.credentials;
         clone.generator = this.generator;
         return clone;
+    }
+
+    setBaseUrl(url: string) {
+        this.baseUrl = url;
     }
 
     setHost(host: string) {
@@ -73,10 +78,13 @@ export class CouchDBConf {
     }
 
     toBaseUrl() {
-        let url = `${this.protocol}://`;
-        url += this.host;
-        url += `:${this.port}/`;
-        return url;
+        if (this.baseUrl === undefined) {
+            let url = `${this.protocol}://`;
+            url += this.host;
+            url += `:${this.port}/`;
+            return url;
+        }
+        return this.baseUrl;
     }
 
     toUrl() {
