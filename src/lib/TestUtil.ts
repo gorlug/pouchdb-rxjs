@@ -31,6 +31,9 @@ export class TestUtil {
                 return endLog.complete();
             })
         ).subscribe({
+            next() {
+                complete();
+            },
             error(error) {
                 endLog.logError(endLog.getName(), "complete fail", error + "");
                 fail("" + error);
