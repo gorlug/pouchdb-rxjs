@@ -230,11 +230,13 @@ export class PouchDBWrapper {
         }
         return log.addTo(fromPromise(this.db.put(json)).pipe(
             catchError(errorResult => {
-                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument failed to save document", errorResult);
+                log.logError(PouchDBWrapper.getLogName(), "saveDocument failed to save document", "" + errorResult.message,
+                    {error: errorResult});
                 log.complete();
                 return throwError(errorResult.message);
             }),
             concatMap((result: Response) => {
+                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument response", {response: result});
                 if (result.ok) {
                     document.updateRev(result.rev);
                 }
@@ -275,6 +277,9 @@ export class PouchDBWrapper {
                 return this.handleGetDocumentError(result, id, log);
             }),
             concatMap(result => {
+                if (this.generator === undefined) {
+                    return throwError("the PouchDBDocument generator is not defined");
+                }
                 return of(this.generator.fromJSON(result));
             }),
         ));
