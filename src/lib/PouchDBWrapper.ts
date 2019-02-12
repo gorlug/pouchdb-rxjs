@@ -128,7 +128,7 @@ export class PouchDBWrapper {
      * @param secondDB
      * @param log
      */
-    static syncDBs(firstDB: PouchDBWrapper, secondDB: PouchDBWrapper, log: Logger) {
+    static syncDBs(firstDB: PouchDBWrapper, secondDB: PouchDBWrapper, log: Logger): any {
         log.logMessage(this.getLogName(), "syncDBs initiating sync",
             { firstDB: firstDB.getDebugInfo({}), secondDB: secondDB.getDebugInfo({})});
         return PouchDB.sync(firstDB.getPouchDB(), secondDB.getPouchDB(), { live: true, retry: true })
