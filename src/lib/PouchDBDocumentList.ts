@@ -28,7 +28,14 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     public getCurrentIndexOfItem(item: T, log: Logger): Observable<{value: number, log: Logger}> {
         log = log.start(LOG_NAME, "getCurrentIndexOfItem", item.getDebugInfo());
         return Observable.create(emitter => {
-            const currentIndex = this.items.indexOf(item);
+            let currentIndex = -1;
+            this.items.some((itemInArray, itemIndex) => {
+                if (itemInArray.isTheSameDocumentAs(item)) {
+                    currentIndex = itemIndex;
+                    return true;
+                }
+                return false;
+            });
             log.logMessage(LOG_NAME, "getCurrentIndexOfItem item has index", {item: item.getDebugInfo(), index: currentIndex});
             log.addToSubscriberNextAndComplete(emitter, currentIndex);
         });
@@ -47,7 +54,6 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 const currentIndex: number = result.value;
                 if (currentIndex >= 0) {
                     const newIndex = currentIndex - 1;
-                    console.log("newIndex", newIndex);
                     this.moveItem(currentIndex, newIndex, item, logStart);
                 }
                 logStart.complete();
