@@ -70,6 +70,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
         this.items.splice(currentIndex, 1);
         this.items.splice(newIndex, 0, item);
+        this.listContent$.next(log.addToValue(this.cloneItemsArray()));
     }
 
     /**
@@ -113,8 +114,16 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
     private itemAddedEvent(log: Logger) {
         log.logMessage(LOG_NAME, "itemAddedEvent", {length: this.items.length});
-        this.listContent$.next(log.addToValue(this.items));
+        this.listContent$.next(log.addToValue(this.cloneItemsArray()));
         this.sort();
+    }
+
+    private cloneItemsArray() {
+        const clone = [];
+        this.items.forEach(item => {
+            clone.push(item);
+        })
+        return clone;
     }
 
     protected sort() {}
@@ -213,7 +222,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         log = log.start(LOG_NAME, "deleteItem", itemToDelete.getDebugInfo());
         return Observable.create(emitter => {
             this.deleteItemFromList(itemToDelete, log);
-            this.listContent$.next(log.addToValue(this.items));
+            this.listContent$.next(log.addToValue(this.cloneItemsArray()));
             log.addToSubscriberNextAndComplete(emitter, itemToDelete);
         });
     }
@@ -358,7 +367,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
             this.items = this.items.filter(item => {
                 return item.getId() !== deletedItem._id;
             });
-            this.listContent$.next(log.addToValue(this.items));
+            this.listContent$.next(log.addToValue(this.cloneItemsArray()));
             log.addToSubscriberNextAndComplete(emitter, deletedItem);
         });
     }

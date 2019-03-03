@@ -4,11 +4,7 @@ import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./
 import {CustomJasmineMatchers} from "./CustomJasmineMatchers";
 import {DBValueWithLog, PouchDBWrapper} from "./PouchDBWrapper";
 import {catchError, concatMap, tap} from "rxjs/operators";
-import {
-    Observable,
-    of,
-    zip, OperatorFunction, throwError
-} from "rxjs";
+import {Observable, of, OperatorFunction, throwError, zip} from "rxjs";
 import {Logger, ValueWithLogger} from "./Logger";
 import {CouchDBConf} from "./CouchDBWrapper";
 
@@ -499,7 +495,9 @@ describe("PouchDBDocumentList tests", () => {
                 logStart = result.log.start(LOG_NAME, "createListWithTwoItems");
                 list = new ListImplementation();
                 item1 = createItem(100);
+                item1.setDebug(true);
                 item2 = createItem(0);
+                item2.setDebug(true);
                 return result.log.addTo(zip(list.addItem(item1, result.log), list.addItem(item2, result.log)));
             }),
             concatMap(result => {
@@ -889,6 +887,39 @@ describe("PouchDBDocumentList tests", () => {
                 test.listContentOf(values.list).shouldHaveSize(2, result.log)),
             concatMap((result: ValueWithLogger) =>
                 test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(differentName, result.log)),
+        );
+        test.subscribeToEnd(observable, complete, startLog);
+    });
+
+    const movingItems_shouldTrigger_listContentChange = "moving items should trigger list content change";
+    it(movingItems_shouldTrigger_listContentChange, complete => {
+        const {startObservable, startLog} = test.createStartObservable(movingItems_shouldTrigger_listContentChange);
+        let values;
+        const observable = createListWithTwoItems(startObservable).pipe(
+            concatMap(result => {
+                values = result.value;
+                values.item1.name = "item1";
+                values.item2.name = "item2";
+                return test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1, result.log);
+            }),
+            concatMap((result: ValueWithLogger) => {
+                return test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item1.name, result.log);
+            }),
+            concatMap((result: ValueWithLogger) =>
+                test.moveItem(values.item2).upInList(values.list, result.log)),
+            concatMap((result: ValueWithLogger) => test.theItem(values.item2)
+                .inList(values.list).shouldBeAtIndex(0, result.log)),
+            concatMap((result: ValueWithLogger) => {
+                return test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item2.name, result.log);
+            }),
+            // move the item back down
+            concatMap((result: ValueWithLogger) =>
+                test.moveItem(values.item2).downInList(values.list, result.log)),
+            concatMap((result: ValueWithLogger) => test.theItem(values.item2)
+                .inList(values.list).shouldBeAtIndex(1, result.log)),
+            concatMap((result: ValueWithLogger) => {
+                return test.listContentOf(values.list).shouldHaveItemAtIndex(1).withName(values.item2.name, result.log);
+            })
         );
         test.subscribeToEnd(observable, complete, startLog);
     });
