@@ -1,5 +1,5 @@
 /// <reference path="../types/JasmineExtension.d.ts" />
-import {PouchDBDocumentList} from "./PouchDBDocumentList";
+import {DeletedItemWithIndexAndLogger, PouchDBDocumentList} from "./PouchDBDocumentList";
 import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
 import {CustomJasmineMatchers} from "./CustomJasmineMatchers";
 import {DBValueWithLog, PouchDBWrapper} from "./PouchDBWrapper";
@@ -443,8 +443,10 @@ describe("PouchDBDocumentList tests", () => {
                 test.add(item).to(list, result.log).atTheBeginning()),
             concatMap((result: ValueWithLogger) =>
                 test.deleteItem(item).fromList(list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(0, result.log))
+            concatMap((result: DeletedItemWithIndexAndLogger<ListItemImplementation>) => {
+                expect(result.value.index).toBe(0);
+                return test.theList(list).shouldHaveSize(0, result.log);
+            })
         );
         test.subscribeToEnd(observable, complete, startLog);
     });

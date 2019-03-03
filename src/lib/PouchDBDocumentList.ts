@@ -11,6 +11,14 @@ export interface ItemWithLogger<T> {
     log: Logger;
 }
 
+export interface DeletedItemWithIndexAndLogger<T> {
+    value: {
+        item: T;
+        index: number;
+    };
+    log: Logger;
+}
+
 /**
  * List representation of pouchdb documents. This allows for example the custom sorting
  * of these documents.
@@ -218,20 +226,26 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         return this.addItemAtIndex(0, item, log);
     }
 
-    public deleteItem(itemToDelete: T, log: Logger): Observable<ItemWithLogger<T>> {
+    public deleteItem(itemToDelete: T, log: Logger): Observable<DeletedItemWithIndexAndLogger<T>> {
         log = log.start(LOG_NAME, "deleteItem", itemToDelete.getDebugInfo());
         return Observable.create(emitter => {
-            this.deleteItemFromList(itemToDelete, log);
+            const itemIndex = this.deleteItemFromList(itemToDelete, log);
             this.listContent$.next(log.addToValue(this.cloneItemsArray()));
-            log.addToSubscriberNextAndComplete(emitter, itemToDelete);
+            log.addToSubscriberNextAndComplete(emitter, {item: itemToDelete, index: itemIndex});
         });
     }
 
     private deleteItemFromList(itemToDelete: T, log: Logger) {
-        this.items = this.items.filter(item => {
-            return !this.isTheSameCheck(item, itemToDelete);
+        let itemIndex = -1;
+        this.items = this.items.filter((item, index) => {
+            if (this.isTheSameCheck(item, itemToDelete)) {
+                itemIndex = index;
+                return false;
+            }
+            return true;
         });
         log.logMessage(LOG_NAME, "deleteItem remaining item length", {length: this.items.length});
+        return itemIndex;
     }
 
     private isTheSameCheck(item: T, value: T) {
