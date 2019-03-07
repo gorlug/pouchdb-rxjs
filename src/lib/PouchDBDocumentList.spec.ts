@@ -373,11 +373,15 @@ const test = {
 
     moveItem: function (item: ListItemImplementation) {
         return {
-            upInList: function (list: ListImplementation, log: Logger) {
-                return list.moveUp(item, log);
+            upInList: function (list: ListImplementation) {
+                return concatMap((result: ValueWithLogger) => {
+                    return list.moveUp(item, result.log);
+                });
             },
-            downInList: function (list: ListImplementation, log: Logger) {
-                return list.moveDown(item, log);
+            downInList: function (list: ListImplementation) {
+                return concatMap((result: ValueWithLogger) => {
+                    return list.moveDown(item, result.log);
+                });
             }
         };
     },
@@ -443,16 +447,19 @@ describe("PouchDBDocumentList tests", () => {
         jasmine.addMatchers(CustomJasmineMatchers.getMatchers());
     });
 
-    function createListWithTwoItems(observable: Observable<ValueWithLogger>): Observable<{
-        value: {
-            item1: ListItemImplementation,
-            item2: ListItemImplementation,
-            list: ListImplementation
-        }, log: Logger
-    }> {
-        let list, item1, item2, logStart;
-        return observable.pipe(
-            concatMap(result => {
+    class ListWithTwoItems {
+        item1: ListItemImplementation;
+        item2: ListItemImplementation;
+        list: ListImplementation;
+    }
+
+    function createListWithTwoItems() {
+        let logStart: Logger;
+        let list, item1, item2;
+        const log = test.getLogger();
+
+        const steps = [
+            concatMap((result: ValueWithLogger) => {
                 logStart = result.log.start(LOG_NAME, "createListWithTwoItems");
                 list = new ListImplementation();
                 item1 = createItem(100);
@@ -461,11 +468,16 @@ describe("PouchDBDocumentList tests", () => {
                 item2.setDebug(true);
                 return result.log.addTo(zip(list.addItem(item1, result.log), list.addItem(item2, result.log)));
             }),
-            concatMap(result => {
+            concatMap((result: ValueWithLogger) => {
+                const values = new ListWithTwoItems();
+                values.item1 = item1;
+                values.item2 = item2;
+                values.list = list;
                 logStart.complete();
-                return result.log.addTo(of({list, item1, item2}));
+                return result.log.addTo(of(values));
             })
-        );
+        ];
+        return TestUtil.operatorsToObservable(steps, log);
     }
 
     const should_have_one_item_after_adding_an_item_to_an_empty_list = "should have one item after adding an item to an empty list";
@@ -545,27 +557,42 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
-
     const should_move_the_item_up_from_index_1_to_index_0 = "should move the item up from index 1 to index 0";
     it(should_move_the_item_up_from_index_1_to_index_0, complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_move_the_item_up_from_index_1_to_index_0);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.moveItem(values.item2).upInList(values.list, result.log)),
-            concatMap((result: ValueWithLogger) => test.theItem(values.item2)
-                .inList(values.list).shouldBeAtIndex(0, result.log))
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1),
+                    test.moveItem(values.item2).upInList(values.list),
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(0)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        TestUtil.testComplete(startLog, observable, complete);
     });
+
+    /*
     const should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0 =
         "should stay at index 0 if the item being moved up is already at index 0";
     it(should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0, complete => {
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0);
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
+        );
+        TestUtil.testComplete(startLog, observable, complete);
+
         const {startObservable, startLog} = test.createStartObservable(
             should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0);
         let values;
