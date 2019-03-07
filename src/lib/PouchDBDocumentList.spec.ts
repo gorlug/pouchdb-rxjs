@@ -319,14 +319,17 @@ const test = {
         return {
             inList: function (list: ListImplementation) {
                 return {
-                    shouldBeAtIndex: function (index: number, log: Logger): Observable<ValueWithLogger> {
-                        return list.getCurrentIndexOfItem(item, log).pipe(
-                            concatMap(result => {
+                    shouldBeAtIndex: function (index: number) {
+                        return [
+                            concatMap((result: ValueWithLogger) => {
+                                return list.getCurrentIndexOfItem(item, result.log);
+                            }),
+                            concatMap((result: ValueWithLogger) => {
                                 const listIndex: number = result.value;
                                 expect(listIndex).toBe(index);
                                 return result.log.addTo(of(item));
                             })
-                        );
+                        ];
                     }
                 };
             }
@@ -500,25 +503,29 @@ describe("PouchDBDocumentList tests", () => {
 
         function expectDeletedIndex_toBe(index: number) {
             return concatMap((result: DeletedItemWithIndexAndLogger<ListItemImplementation>) => {
-                expect(result.value.index).toBe(0);
+                expect(result.value.index).toBe(index);
                 return result.log.addTo(of(result.value));
             });
         }
     });
-    /*
     const should_return_0_when_getting_the_index_of_the_only_item_in_the_list =
         "should return 0 when getting the index of the only item in the list";
     it(should_return_0_when_getting_the_index_of_the_only_item_in_the_list, complete => {
         const list = new ListImplementation();
         const item = new ListItemImplementation();
-        const {startObservable, startLog} = test.createStartObservable(should_return_0_when_getting_the_index_of_the_only_item_in_the_list);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) => test.add(item).to(list, result.log).atTheBeginning()),
-            concatMap((result: ValueWithLogger) => test.theItem(item).inList(list)
-                .shouldBeAtIndex(0, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+
+        const steps = [
+            test.add(item).to(list).atTheBeginning(),
+            test.theItem(item).inList(list).shouldBeAtIndex(0)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
     });
+
+    /*
     const should_add_the_item_at_index_0_before_the_existing_one = "should add the item at index 0 before the existing one";
     it(should_add_the_item_at_index_0_before_the_existing_one, complete => {
         const list = new ListImplementation();
