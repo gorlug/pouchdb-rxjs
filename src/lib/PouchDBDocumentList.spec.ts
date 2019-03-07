@@ -753,28 +753,29 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_add_the_new_unique_item_because_it_is_not_in_the_list_yet =
         "should add the new unique item because it is not in the list yet";
     it(should_add_the_new_unique_item_because_it_is_not_in_the_list_yet, complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_add_the_new_unique_item_because_it_is_not_in_the_list_yet);
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_add_the_new_unique_item_because_it_is_not_in_the_list_yet);
         const item = createItem(200);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.tryToAdd(item).asAUniqueItemTo(values.list, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(3, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.tryToAdd(item).againAsAUniqueItemTo(values.list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(3, result.log))
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.tryToAdd(item).asAUniqueItemTo(values.list),
+                    test.theList(values.list).shouldHaveSize(3),
+                    test.tryToAdd(item).againAsAUniqueItemTo(values.list),
+                    test.theList(values.list).shouldHaveSize(3)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     interface ListWithTwoItemNames {
         list: ListImplementation;
         name1: string;
