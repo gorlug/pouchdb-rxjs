@@ -471,7 +471,7 @@ describe("PouchDBDocumentList tests", () => {
     const should_have_one_item_after_adding_an_item_to_an_empty_list = "should have one item after adding an item to an empty list";
     it(should_have_one_item_after_adding_an_item_to_an_empty_list, complete => {
         const log = test.getLogger();
-        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+        const startLog = log.start(LOG_NAME, should_have_one_item_after_adding_an_item_to_an_empty_list);
 
         const list = test.createNewList();
         const item = test.createNewItem();
@@ -490,7 +490,7 @@ describe("PouchDBDocumentList tests", () => {
         const item = new ListItemImplementation();
 
         const log = test.getLogger();
-        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+        const startLog = log.start(LOG_NAME, should_have_length_0_after_deleting_an_item);
 
         const steps = [
             test.add(item).to(list).atTheBeginning(),
@@ -515,7 +515,7 @@ describe("PouchDBDocumentList tests", () => {
         const item = new ListItemImplementation();
 
         const log = test.getLogger();
-        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+        const startLog = log.start(LOG_NAME, should_return_0_when_getting_the_index_of_the_only_item_in_the_list);
 
         const steps = [
             test.add(item).to(list).atTheBeginning(),
@@ -525,28 +525,27 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_add_the_item_at_index_0_before_the_existing_one = "should add the item at index 0 before the existing one";
     it(should_add_the_item_at_index_0_before_the_existing_one, complete => {
         const list = new ListImplementation();
         const item1 = new ListItemImplementation();
         item1.setId(item1.getId() + "0");
         const item2 = new ListItemImplementation();
-        const {startObservable, startLog} = test.createStartObservable(should_add_the_item_at_index_0_before_the_existing_one);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.add(item1).to(list, result.log).atTheEnd()),
-            concatMap((result: ValueWithLogger) =>
-                test.add(item2).to(list, result.log).atIndex(0)),
-            concatMap((result: ValueWithLogger) =>
-                test.theItem(item1).inList(list).shouldBeAtIndex(1, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theItem(item2).inList(list).shouldBeAtIndex(0, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_add_the_item_at_index_0_before_the_existing_one);
+
+        const steps = [
+            test.add(item1).to(list).atTheEnd(),
+            test.add(item2).to(list).atIndex(0),
+            test.theItem(item1).inList(list).shouldBeAtIndex(1),
+            test.theItem(item2).inList(list).shouldBeAtIndex(0)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
-
+    /*
 
     const should_move_the_item_up_from_index_1_to_index_0 = "should move the item up from index 1 to index 0";
     it(should_move_the_item_up_from_index_1_to_index_0, complete => {
