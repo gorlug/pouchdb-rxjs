@@ -981,39 +981,31 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const movingItems_shouldTrigger_listContentChange = "moving items should trigger list content change";
     it(movingItems_shouldTrigger_listContentChange, complete => {
-        const {startObservable, startLog} = test.createStartObservable(movingItems_shouldTrigger_listContentChange);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, movingItems_shouldTrigger_listContentChange);
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
                 values.item1.name = "item1";
                 values.item2.name = "item2";
-                return test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1, result.log);
-            }),
-            concatMap((result: ValueWithLogger) => {
-                return test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item1.name, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.moveItem(values.item2).upInList(values.list, result.log)),
-            concatMap((result: ValueWithLogger) => test.theItem(values.item2)
-                .inList(values.list).shouldBeAtIndex(0, result.log)),
-            concatMap((result: ValueWithLogger) => {
-                return test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item2.name, result.log);
-            }),
-            // move the item back down
-            concatMap((result: ValueWithLogger) =>
-                test.moveItem(values.item2).downInList(values.list, result.log)),
-            concatMap((result: ValueWithLogger) => test.theItem(values.item2)
-                .inList(values.list).shouldBeAtIndex(1, result.log)),
-            concatMap((result: ValueWithLogger) => {
-                return test.listContentOf(values.list).shouldHaveItemAtIndex(1).withName(values.item2.name, result.log);
+                const steps = [
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1),
+                    test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item1.name),
+                    test.moveItem(values.item2).upInList(values.list),
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(0),
+                    test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(values.item2.name),
+                    // move the item back down
+                    test.moveItem(values.item2).downInList(values.list),
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(1),
+                    test.listContentOf(values.list).shouldHaveItemAtIndex(1).withName(values.item2.name)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
             })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
-    */
 });
 
