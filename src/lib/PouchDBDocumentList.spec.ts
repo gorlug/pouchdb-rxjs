@@ -437,8 +437,10 @@ const test = {
     },
     getItemFromList(list: ListImplementation) {
         return {
-            atIndex(index: number, log: Logger) {
-                return list.getItemAtIndex(index, log);
+            atIndex(index: number) {
+                return concatMap((result: ValueWithLogger) => {
+                    return list.getItemAtIndex(index, result.log);
+                });
             }
         };
     },
@@ -947,38 +949,39 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_on_database_value_change_update_the_list_with_the_new_contents =
         "should on database value change update the list with the new contents";
     it(should_on_database_value_change_update_the_list_with_the_new_contents, complete => {
-        const {startObservable, startLog} = test.createStartObservable(
-            should_after_subscribe_delete_elements_from_the_list);
-        let values: ListWithTwoItemNames;
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_on_database_value_change_update_the_list_with_the_new_contents);
+
         const differentName = "some different name";
-        let item;
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                createDBWithTwoItemsAndSubscribeWithList(result.log)),
+
+        const observable = createDBWithTwoItemsAndSubscribeWithList(log).pipe(
             concatMap((result: DBWithTwoItemsSubscribeResult) => {
-                values = result.value;
-                return test.getItemFromList(values.list).atIndex(0, result.log);
-            }),
-            concatMap((result: {value: ListItemImplementation, log: Logger}) => {
-                item = result.value;
-                return result.value.setNameTo(differentName, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.addItemTo(values.db, result.log).asDocument(item)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(2, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.listContentOf(values.list).shouldHaveSize(2, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(differentName, result.log)),
+                const values = result.value;
+                const steps = [
+                    test.getItemFromList(values.list).atIndex(0),
+                    setName_onItem_andAdd_toDB(differentName),
+                    test.theList(values.list).shouldHaveSize(2),
+                    test.listContentOf(values.list).shouldHaveSize(2),
+                    test.listContentOf(values.list).shouldHaveItemAtIndex(0).withName(differentName),
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+
+                function setName_onItem_andAdd_toDB(name: string) {
+                    return concatMap((innerResult: {value: ListItemImplementation, log: Logger}) => {
+                        const item = innerResult.value;
+                        item.name = name;
+                        return values.db.saveDocument(item, result.log);
+                    });
+                }
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     const movingItems_shouldTrigger_listContentChange = "moving items should trigger list content change";
     it(movingItems_shouldTrigger_listContentChange, complete => {
         const {startObservable, startLog} = test.createStartObservable(movingItems_shouldTrigger_listContentChange);
