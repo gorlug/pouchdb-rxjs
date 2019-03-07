@@ -577,7 +577,6 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0 =
         "should stay at index 0 if the item being moved up is already at index 0";
     it(should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0, complete => {
@@ -587,28 +586,17 @@ describe("PouchDBDocumentList tests", () => {
         const observable = createListWithTwoItems().pipe(
             concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
                 const values = result.value;
-                const steps = [];
+                const steps = [
+                    test.moveItem(values.item2).upInList(values.list),
+                    test.moveItem(values.item2).upInList(values.list),
+                    test.theItem(values.item2).inList(values.list).shouldBeAtIndex(0)
+                ];
                 return TestUtil.operatorsToObservable(steps, result.log);
             })
         );
         TestUtil.testComplete(startLog, observable, complete);
-
-        const {startObservable, startLog} = test.createStartObservable(
-            should_stay_at_index_0_if_the_item_being_moved_up_is_already_at_index_0);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.moveItem(values.item2).upInList(values.list, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.moveItem(values.item2).upInList(values.list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theItem(values.item2).inList(values.list).shouldBeAtIndex(0, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
     });
-
+    /*
     it("should move the item down from index 0 to index 1", complete => {
         const {startObservable, startLog} = test.createStartObservable(should_not_move_the_item_down_more_than_index_1);
         let values;
