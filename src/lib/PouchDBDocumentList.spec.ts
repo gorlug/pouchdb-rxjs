@@ -175,11 +175,13 @@ const test = {
     },
     tryToAdd: function (item: ListItemImplementation) {
         return {
-            againAsAUniqueItemTo: function (list: ListImplementation, log: Logger) {
-                return this.asAUniqueItemTo(list, log);
+            againAsAUniqueItemTo: function (list: ListImplementation) {
+                return this.asAUniqueItemTo(list);
             },
-            asAUniqueItemTo: function (list: ListImplementation, log: Logger) {
-                return list.addUniqueItem(item, log);
+            asAUniqueItemTo: function (list: ListImplementation) {
+                return concatMap((result: ValueWithLogger) => {
+                    return list.addUniqueItem(item, result.log);
+                });
             }
         };
     },
@@ -733,22 +735,25 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_not_add_the_same_unique_item = "should not add the same unique item";
     it(should_not_add_the_same_unique_item, complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_not_add_the_same_unique_item);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.tryToAdd(values.item1).againAsAUniqueItemTo(values.list, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(2, result.log))
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_not_add_the_same_unique_item);
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.tryToAdd(values.item1).againAsAUniqueItemTo(values.list),
+                    test.theList(values.list).shouldHaveSize(2)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     const should_add_the_new_unique_item_because_it_is_not_in_the_list_yet =
         "should add the new unique item because it is not in the list yet";
     it(should_add_the_new_unique_item_because_it_is_not_in_the_list_yet, complete => {
