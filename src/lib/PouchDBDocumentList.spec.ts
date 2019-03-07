@@ -26,8 +26,10 @@ export class ListItemImplementation extends PouchDBDocument<ListItemImplementati
         });
     }
 
-    addOrUpdateOn(list: ListImplementation, log: Logger) {
-        return list.addOrUpdateItem(this, log);
+    addOrUpdateOn(list: ListImplementation) {
+        return concatMap((result: ValueWithLogger) => {
+            return list.addOrUpdateItem(this, result.log);
+        });
     }
 
     shouldHaveName(name: string) {
@@ -185,14 +187,17 @@ const test = {
         return {
             atIndex: function (index: number) {
                 return {
-                    shouldHaveName: function (name: string, log: Logger) {
-                        return list.getItemAtIndex(index, log).pipe(
-                            concatMap(result => {
+                    shouldHaveName: function (name: string) {
+                        return [
+                            concatMap((result: ValueWithLogger) => {
+                                return list.getItemAtIndex(index, result.log);
+                            }),
+                            concatMap((result: ValueWithLogger) => {
                                 const item: ListItemImplementation = result.value;
                                 item.shouldHaveName(name);
-                                return of(result);
-                            }),
-                        );
+                                return result.log.addTo(of(result.value));
+                            })
+                        ];
                     }
                 };
             },
@@ -652,31 +657,30 @@ describe("PouchDBDocumentList tests", () => {
         const observable = TestUtil.operatorsToObservable(steps, log);
         TestUtil.testComplete(startLog, observable, complete);
     });
-    /*
+
     const should_update_the_item_with_the_new_contents = "should update the item with the new contents";
     it(should_update_the_item_with_the_new_contents, complete => {
         const list = new ListImplementation();
         const item = new ListItemImplementation();
         const firstName = "first name";
         const secondName = "second name";
-        const {startObservable, startLog} = test.createStartObservable(should_update_the_item_with_the_new_contents);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                item.setNameTo(firstName, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                item.addOrUpdateOn(list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(0).shouldHaveName(firstName, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                item.setNameTo(secondName, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                item.addOrUpdateOn(list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(0).shouldHaveName(secondName, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_update_the_item_with_the_new_contents);
+
+        const steps = [
+            item.setNameTo(firstName),
+            item.addOrUpdateOn(list),
+            test.itemIn(list).atIndex(0).shouldHaveName(firstName),
+            item.setNameTo(secondName),
+            item.addOrUpdateOn(list),
+            test.itemIn(list).atIndex(0).shouldHaveName(secondName)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     const should_add_two_more_items_between_item1_and_item2 = "should add two more items between item1 and item2";
     it(should_add_two_more_items_between_item1_and_item2, complete => {
         const {startObservable, startLog} = test.createStartObservable(should_add_two_more_items_between_item1_and_item2);
