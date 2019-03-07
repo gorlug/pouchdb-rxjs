@@ -342,7 +342,7 @@ const test = {
     },
     theList: function (list: ListImplementation) {
         return {
-            shouldHaveSize: function (size: number, log: Logger) {
+            shouldHaveSize: function (size: number) {
                 return [
                     concatMap((result: ValueWithLogger) => {
                         return list.getSize(result.log);
@@ -354,15 +354,18 @@ const test = {
                     })
                 ];
             },
-            shouldBeInThisOrder: function (order: ListItemImplementation[], log: Logger) {
-                return list.getItems(log).pipe(
-                    concatMap(result => {
+            shouldBeInThisOrder: function (order: ListItemImplementation[]) {
+                return [
+                    concatMap((result: ValueWithLogger) => {
+                        return list.getItems(result.log);
+                    }),
+                    concatMap((result: ValueWithLogger) => {
                         result.log.complete();
                         const items: ListItemImplementation[] = result.value;
                         expect(items).toBeInThisOrder(order);
-                        return log.addTo(of(items));
+                        return result.log.addTo(of(items));
                     })
-                );
+                ];
             }
         };
     },
@@ -680,33 +683,35 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_add_two_more_items_between_item1_and_item2 = "should add two more items between item1 and item2";
     it(should_add_two_more_items_between_item1_and_item2, complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_add_two_more_items_between_item1_and_item2);
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_add_two_more_items_between_item1_and_item2);
+
         const item3 = createItem(200);
         const item4 = createItem(300);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.add(item3).to(values.list, result.log).atIndex(1);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.add(item4).to(values.list, result.log).atIndex(2)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(4, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldBeInThisOrder([
-                    values.item1,
-                    item3,
-                    item4,
-                    values.item2
-                ], result.log))
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.add(item3).to(values.list).atIndex(1),
+                    test.add(item4).to(values.list).atIndex(2),
+                    test.theList(values.list).shouldHaveSize(4),
+                    test.theList(values.list).shouldBeInThisOrder([
+                        values.item1,
+                        item3,
+                        item4,
+                        values.item2
+                    ])
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     const should_add_the_item_at_the_beginning = "should add the item at the beginning";
     it(should_add_the_item_at_the_beginning, complete => {
         const {startObservable, startLog} = test.createStartObservable(should_add_the_item_at_the_beginning);
