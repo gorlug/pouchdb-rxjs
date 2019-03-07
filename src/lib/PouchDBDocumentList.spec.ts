@@ -255,11 +255,13 @@ const test = {
         };
     },
 
-    deleteItemFrom: function (db: PouchDBWrapper, log: Logger) {
+    deleteItemFrom: function (db: PouchDBWrapper) {
         return {
             withNameAndList: function (name: string, list: ListImplementation) {
                 const item = list.getItemWithName(name);
-                return db.deleteDocument(item, log);
+                return concatMap((result: ValueWithLogger) => {
+                    return db.deleteDocument(item, result.log);
+                });
             }
         };
     },
@@ -871,27 +873,26 @@ describe("PouchDBDocumentList tests", () => {
 
         TestUtil.testComplete(startLog, observable, complete);
     });
-    /*
+
     const should_after_subscribe_delete_elements_from_the_list = "should after subscribe delete elements from the list";
     it(should_after_subscribe_delete_elements_from_the_list, complete => {
-        const {startObservable, startLog} = test.createStartObservable(
-            should_after_subscribe_delete_elements_from_the_list);
-        let values: ListWithTwoItemNames;
-        const observable = startObservable.pipe(
-            concatMap((result: DBValueWithLog) =>
-                createDBWithTwoItemsAndSubscribeWithList(result.log)),
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_after_subscribe_delete_elements_from_the_list);
+
+        const observable = createDBWithTwoItemsAndSubscribeWithList(log).pipe(
             concatMap((result: DBWithTwoItemsSubscribeResult) => {
-                values = result.value;
-                return test.deleteItemFrom(values.db, result.log).withNameAndList(values.name1, values.list);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldHaveSize(1, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.itemIn(values.list).atIndex(0).shouldHaveName(values.name2, result.log))
+                const values = result.value;
+                const steps = [
+                    test.deleteItemFrom(values.db).withNameAndList(values.name1, values.list),
+                    test.theList(values.list).shouldHaveSize(1),
+                    test.itemIn(values.list).atIndex(0).shouldHaveName(values.name2)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
-    */
+
     const should_trigger_a_list_change_event_on_add_and_delete = "should trigger a list change event on add and delete";
     it(should_trigger_a_list_change_event_on_add_and_delete, complete => {
 
