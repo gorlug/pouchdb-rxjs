@@ -924,32 +924,30 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
 
     });
-    /*
+
     const should_update_the_list_content_if_the_values_of_an_item_change = "should update the list content if the values of an item change";
     it(should_update_the_list_content_if_the_values_of_an_item_change, complete => {
         const list = test.createNewList();
         const name1 = "name1";
         const item = test.createNewItem(name1);
         const name2 = "name2";
-        const {startObservable, startLog} = test.createStartObservable(
-            should_trigger_a_list_change_event_on_add_and_delete);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.add(item).to(list, result.log).atTheBeginning()),
-            concatMap((result: ValueWithLogger) =>
-                test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name1, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                item.setNameTo(name2, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.add(item).to(list, result.log).orUpdate()),
-            concatMap((result: ValueWithLogger) =>
-                test.listContentOf(list).shouldHaveSize(1, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name2, result.log)),
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_update_the_list_content_if_the_values_of_an_item_change);
+
+        const steps = [
+            test.add(item).to(list).atTheBeginning(),
+            test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name1),
+            item.setNameTo(name2),
+            test.add(item).to(list).orUpdate(),
+            test.listContentOf(list).shouldHaveSize(1),
+            test.listContentOf(list).shouldHaveItemAtIndex(0).withName(name2),
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
     });
 
+    /*
     const should_on_database_value_change_update_the_list_with_the_new_contents =
         "should on database value change update the list with the new contents";
     it(should_on_database_value_change_update_the_list_with_the_new_contents, complete => {
