@@ -335,13 +335,16 @@ const test = {
     theList: function (list: ListImplementation) {
         return {
             shouldHaveSize: function (size: number, log: Logger) {
-                return list.getSize(log).pipe(
-                    concatMap(result => {
+                return [
+                    concatMap((result: ValueWithLogger) => {
+                        return list.getSize(result.log);
+                    }),
+                    concatMap((result: ValueWithLogger) => {
                         const listSize: number = result.value;
                         expect(listSize).toBe(size);
                         return result.log.addTo(of(listSize));
                     })
-                );
+                ];
             },
             shouldBeInThisOrder: function (order: ListItemImplementation[], log: Logger) {
                 return list.getItems(log).pipe(
@@ -462,22 +465,23 @@ describe("PouchDBDocumentList tests", () => {
         );
     }
 
-    /*
     const should_have_one_item_after_adding_an_item_to_an_empty_list = "should have one item after adding an item to an empty list";
     it(should_have_one_item_after_adding_an_item_to_an_empty_list, complete => {
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+
         const list = test.createNewList();
         const item = test.createNewItem();
-        const {startObservable, startLog} = test.createStartObservable(should_have_one_item_after_adding_an_item_to_an_empty_list);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(0, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.add(item).to(list, result.log).atTheBeginning()),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(1, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        const steps = [
+            test.theList(list).shouldHaveSize(0),
+            test.add(item).to(list).atTheBeginning(),
+            test.theList(list).shouldHaveSize(1)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
     });
+    /*
     const should_have_length_0_after_deleting_an_item = "should have length 0 after deleting an item";
     it(should_have_length_0_after_deleting_an_item, complete => {
         const list = new ListImplementation();
