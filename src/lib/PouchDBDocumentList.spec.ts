@@ -71,72 +71,7 @@ class ListImplementation extends PouchDBDocumentList<ListItemImplementation> {
     }
 }
 
-
-class AfterItemFunctions {
-
-    private observable: Observable<ValueWithLogger>;
-
-    constructor(observable: Observable<ValueWithLogger>) {
-        this.observable = observable;
-    }
-    /*
-    theList(list: ListImplementation) {
-        const self = this;
-        return {
-            shouldHaveSize: function (size: number) {
-                let originalResult;
-                return self.observable.pipe(
-                    concatMap(result => {
-                        originalResult = result;
-                        return list.getSize(result.log);
-                    }),
-                    concatMap(result => {
-                        const listSize: number = result.value;
-                        expect(listSize).toBe(size);
-                        test.listContentOf(list).shouldHaveSizeSync(size);
-                        return of(originalResult);
-                    }),
-                );
-            }
-        };
-    }
-
-    theItemIn(list: ListImplementation) {
-        const self = this;
-        return {
-            atIndex: function (index: number) {
-                return {
-                    shouldHaveName: function (name: string, observable: Observable<any>) {
-                        return test.itemIn(list).atIndex(index).shouldHaveName(name, observable);
-                    },
-                    fromListContentShouldHaveName: function (name: string) {
-                        let originalResult;
-                        return self.observable.pipe(
-                            concatMap(result => {
-                                originalResult = result;
-                                return list.listContent$;
-                            }),
-                            concatMap(result => {
-                                const items: ListItemImplementation[] = result.value;
-                                items[index].shouldHaveName(name);
-                                return of(originalResult);
-                            })
-                        );
-                    }
-                };
-            }
-        };
-    }
-    */
-}
-
 const test = {
-    afterItemWasAddedTo: function (observable: Observable<any>) {
-        return new AfterItemFunctions(observable);
-    },
-    afterItemWasDeletedFrom: function (observable: Observable<any>) {
-        return new AfterItemFunctions(observable);
-    },
     add: function (item: ListItemImplementation) {
         return {
             to: function (list: ListImplementation) {
