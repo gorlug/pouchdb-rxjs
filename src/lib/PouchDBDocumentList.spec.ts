@@ -842,40 +842,36 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list =
         "should after subscription automatically add a new item to the beginning of the list";
     it(should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list, complete => {
-        const {startObservable, startLog} = test.createStartObservable(
-            should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list);
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_after_subscription_automatically_add_a_new_item_to_the_beginning_of_the_list);
+
         const list = test.createNewList();
         const name1 = "name1";
         const name2 = "name2";
-        let db: PouchDBWrapper;
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.createLocalDB()),
+
+        const observable = test.createLocalDB(log).pipe(
             concatMap((result: DBValueWithLog) => {
-                db = result.value;
-                return test.make(list).subscribeTo(result);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(0, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.addItemTo(db, result.log).withName(name1, 100)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(1, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.addItemTo(db, result.log).withName(name2)),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(2, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(0).shouldHaveName(name2, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.itemIn(list).atIndex(1).shouldHaveName(name1, result.log)),
+                const db = result.value;
+                const steps = [
+                    test.make(list).subscribeTo(db),
+                    test.theList(list).shouldHaveSize(0),
+                    test.addItemTo(db).withName(name1, 100),
+                    test.theList(list).shouldHaveSize(1),
+                    test.addItemTo(db).withName(name2),
+                    test.theList(list).shouldHaveSize(2),
+                    test.itemIn(list).atIndex(0).shouldHaveName(name2),
+                    test.itemIn(list).atIndex(1).shouldHaveName(name1),
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+
+        TestUtil.testComplete(startLog, observable, complete);
     });
+    /*
     const should_after_subscribe_delete_elements_from_the_list = "should after subscribe delete elements from the list";
     it(should_after_subscribe_delete_elements_from_the_list, complete => {
         const {startObservable, startLog} = test.createStartObservable(
