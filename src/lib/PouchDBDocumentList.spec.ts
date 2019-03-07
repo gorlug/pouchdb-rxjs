@@ -636,21 +636,23 @@ describe("PouchDBDocumentList tests", () => {
         );
         TestUtil.testComplete(startLog, observable, complete);
     });
-    /*
+
     const should_just_add_the_item_because_it_does_not_exist_yet = "should just add the item because it doesn't exist yet";
     it(should_just_add_the_item_because_it_does_not_exist_yet, complete => {
         const list = new ListImplementation();
         const item = new ListItemImplementation();
-        const {startObservable, startLog} = test.createStartObservable(should_just_add_the_item_because_it_does_not_exist_yet);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.add(item).to(list, result.log).orUpdate()),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(list).shouldHaveSize(1, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
-    });
 
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_just_add_the_item_because_it_does_not_exist_yet);
+
+        const steps = [
+            test.add(item).to(list).orUpdate(),
+            test.theList(list).shouldHaveSize(1)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
+    });
+    /*
     const should_update_the_item_with_the_new_contents = "should update the item with the new contents";
     it(should_update_the_item_with_the_new_contents, complete => {
         const list = new ListImplementation();
