@@ -711,24 +711,29 @@ describe("PouchDBDocumentList tests", () => {
         TestUtil.testComplete(startLog, observable, complete);
     });
 
-    /*
     const should_add_the_item_at_the_beginning = "should add the item at the beginning";
     it(should_add_the_item_at_the_beginning, complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_add_the_item_at_the_beginning);
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_add_the_item_at_the_beginning);
+
         const item3 = createItem(200);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.add(item3).to(values.list, result.log).atTheBeginning();
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.theList(values.list).shouldBeInThisOrder([
-                    item3, values.item1, values.item2
-                ], result.log))
+
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.add(item3).to(values.list).atTheBeginning(),
+                    test.theList(values.list).shouldBeInThisOrder([
+                        item3, values.item1, values.item2
+                    ])
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
         );
-        test.subscribeToEnd(observable, complete, startLog);
+        TestUtil.testComplete(startLog, observable, complete);
     });
+
+    /*
     const should_not_add_the_same_unique_item = "should not add the same unique item";
     it(should_not_add_the_same_unique_item, complete => {
         const {startObservable, startLog} = test.createStartObservable(should_not_add_the_same_unique_item);
