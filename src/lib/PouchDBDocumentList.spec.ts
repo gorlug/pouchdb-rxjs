@@ -1,5 +1,5 @@
 /// <reference path="../types/JasmineExtension.d.ts" />
-import {PouchDBDocumentList} from "./PouchDBDocumentList";
+import {DeletedItemWithIndexAndLogger, PouchDBDocumentList} from "./PouchDBDocumentList";
 import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
 import {CustomJasmineMatchers} from "./CustomJasmineMatchers";
 import {DBValueWithLog, PouchDBWrapper} from "./PouchDBWrapper";
@@ -481,24 +481,31 @@ describe("PouchDBDocumentList tests", () => {
         const observable = TestUtil.operatorsToObservable(steps, log);
         TestUtil.testComplete(startLog, observable, complete);
     });
-    /*
     const should_have_length_0_after_deleting_an_item = "should have length 0 after deleting an item";
     it(should_have_length_0_after_deleting_an_item, complete => {
         const list = new ListImplementation();
         const item = new ListItemImplementation();
-        const {startObservable, startLog} = test.createStartObservable(should_have_length_0_after_deleting_an_item);
-        const observable = startObservable.pipe(
-            concatMap((result: ValueWithLogger) =>
-                test.add(item).to(list, result.log).atTheBeginning()),
-            concatMap((result: ValueWithLogger) =>
-                test.deleteItem(item).fromList(list, result.log)),
-            concatMap((result: DeletedItemWithIndexAndLogger<ListItemImplementation>) => {
+
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, should_trigger_a_list_change_event_on_add_and_delete);
+
+        const steps = [
+            test.add(item).to(list).atTheBeginning(),
+            test.deleteItem(item).fromList(list),
+            expectDeletedIndex_toBe(0),
+            test.theList(list).shouldHaveSize(0)
+        ];
+        const observable = TestUtil.operatorsToObservable(steps, log);
+        TestUtil.testComplete(startLog, observable, complete);
+
+        function expectDeletedIndex_toBe(index: number) {
+            return concatMap((result: DeletedItemWithIndexAndLogger<ListItemImplementation>) => {
                 expect(result.value.index).toBe(0);
-                return test.theList(list).shouldHaveSize(0, result.log);
-            })
-        );
-        test.subscribeToEnd(observable, complete, startLog);
+                return result.log.addTo(of(result.value));
+            });
+        }
     });
+    /*
     const should_return_0_when_getting_the_index_of_the_only_item_in_the_list =
         "should return 0 when getting the index of the only item in the list";
     it(should_return_0_when_getting_the_index_of_the_only_item_in_the_list, complete => {
