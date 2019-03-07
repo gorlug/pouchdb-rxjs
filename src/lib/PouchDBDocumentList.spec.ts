@@ -596,23 +596,24 @@ describe("PouchDBDocumentList tests", () => {
         );
         TestUtil.testComplete(startLog, observable, complete);
     });
-    /*
     it("should move the item down from index 0 to index 1", complete => {
-        const {startObservable, startLog} = test.createStartObservable(should_not_move_the_item_down_more_than_index_1);
-        let values;
-        const observable = createListWithTwoItems(startObservable).pipe(
-            concatMap(result => {
-                values = result.value;
-                return test.theItem(values.item1).inList(values.list).shouldBeAtIndex(0, result.log);
-            }),
-            concatMap((result: ValueWithLogger) =>
-                test.moveItem(values.item1).downInList(values.list, result.log)),
-            concatMap((result: ValueWithLogger) =>
-                test.theItem(values.item1).inList(values.list).shouldBeAtIndex(1, result.log))
-        );
-        test.subscribeToEnd(observable, complete, startLog);
-    });
+        const log = test.getLogger();
+        const startLog = log.start(LOG_NAME, );
 
+        const observable = createListWithTwoItems().pipe(
+            concatMap((result: {value: ListWithTwoItems, log: Logger}) => {
+                const values = result.value;
+                const steps = [
+                    test.theItem(values.item1).inList(values.list).shouldBeAtIndex(0),
+                    test.moveItem(values.item1).downInList(values.list),
+                    test.theItem(values.item1).inList(values.list).shouldBeAtIndex(1)
+                ];
+                return TestUtil.operatorsToObservable(steps, result.log);
+            })
+        );
+        TestUtil.testComplete(startLog, observable, complete);
+    });
+    /*
     const should_not_move_the_item_down_more_than_index_1 = "should not move the item down more than index 1";
     it(should_not_move_the_item_down_more_than_index_1, complete => {
         const {startObservable, startLog} = test.createStartObservable(should_move_the_item_up_from_index_1_to_index_0);
