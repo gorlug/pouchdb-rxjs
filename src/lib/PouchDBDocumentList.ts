@@ -122,8 +122,8 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
     private itemAddedEvent(log: Logger) {
         log.logMessage(LOG_NAME, "itemAddedEvent", {length: this.items.length});
-        this.listContent$.next(log.addToValue(this.cloneItemsArray()));
         this.sort();
+        this.listContent$.next(log.addToValue(this.cloneItemsArray()));
     }
 
     private cloneItemsArray() {
