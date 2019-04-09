@@ -28,7 +28,7 @@ PouchDB.plugin(pouchdb_mapreduce);
 PouchDB.plugin(pouchdb_replication);
 PouchDB.plugin(pouchdb_authentication);
 
-export const POUCHDB_WRAPPER_JSON_VERSION = "0.1.5";
+export const POUCHDB_WRAPPER_JSON_VERSION = "0.2.0";
 
 export interface DeletedDocument {
     _id: string;
