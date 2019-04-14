@@ -36,4 +36,14 @@ export class TestUtil {
             }
         });
     }
+
+    static runTest(name: string, logName: string, getLogger: Function, callback: Function) {
+        it(name, complete => {
+            const log = getLogger();
+            const startLog = log.start(logName, name);
+            const steps = callback();
+            const observable = TestUtil.operatorsToObservable(steps, log);
+            TestUtil.testComplete(startLog, observable, complete);
+        });
+    }
 }

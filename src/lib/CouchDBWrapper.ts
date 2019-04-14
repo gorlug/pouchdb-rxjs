@@ -324,29 +324,49 @@ export class CouchDBWrapper {
      */
     static setDBAuthorization(conf: CouchDBConf, members: string[], log: Logger):
             Observable<ValueWithLogger> {
-        const ajaxRequest = conf.toRequest(log);
+        const ajaxRequest = CouchDBWrapper.createAuthorizationRequest(conf, log);
         const logParams: any = conf.getDebugInfo();
         logParams.members = members;
         log = log.start(this.getLogName(), "setDBAuthorization", logParams);
-        ajaxRequest.url += "/_security";
         ajaxRequest.method = "PUT";
-        ajaxRequest.headers["Content-Type"] = "application/json";
         ajaxRequest.body = {
             members: {
                 names: members,
             }
         };
         return log.addTo(this.createAjaxObservable(ajaxRequest, log)).pipe(
-            concatMap(result => this.logDBAuthorizationResponse(result) )
+            concatMap(result => this.logDBAuthorizationResponse("setDBAuthorization", result) )
         );
     }
 
-    private static logDBAuthorizationResponse(result: ValueWithLogger) {
+    private static createAuthorizationRequest(conf: CouchDBConf, log: Logger) {
+        const ajaxRequest = conf.toRequest(log);
+        ajaxRequest.url += "/_security";
+        ajaxRequest.headers["Content-Type"] = "application/json";
+        return ajaxRequest;
+    }
+
+    private static logDBAuthorizationResponse(name: string, result: ValueWithLogger) {
         const response: AjaxResponse = result.value;
         result.log.complete();
-        result.log.logMessage(this.getLogName(), "setDBAuthorization response",
+        result.log.logMessage(this.getLogName(), name + " response",
             {status: response.status, response: response.response});
         return of(result);
     }
+
+    static getDBAuthorization(conf: CouchDBConf, log: Logger): any {
+        const ajaxRequest = CouchDBWrapper.createAuthorizationRequest(conf, log);
+        const logParams: any = conf.getDebugInfo();
+        const start = log.start(this.getLogName(), "getDBAuthorization", logParams);
+        ajaxRequest.method = "GET";
+        return log.addTo(this.createAjaxObservable(ajaxRequest, log)).pipe(
+            concatMap((result: ValueWithLogger) => {
+                this.logDBAuthorizationResponse("getDBAuthorization", result);
+                start.complete();
+                return result.log.addTo(of(result.value.response.members.names));
+            })
+        );
+    }
+
 
 }

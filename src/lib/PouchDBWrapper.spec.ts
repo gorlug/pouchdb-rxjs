@@ -4,6 +4,7 @@ import {catchError, concatMap, tap} from "rxjs/operators";
 import {CouchDBConf, CouchDBWrapper, Credentials} from "./CouchDBWrapper";
 import {Logger, ValueWithLogger} from "./Logger";
 import {PouchDBDocument, PouchDBDocumentGenerator, PouchDBDocumentJSON} from "./PouchDBDocument";
+import {TestUtil} from "./TestUtil";
 
 export interface TodoDocument extends PouchDBDocumentJSON {
     name: string;
@@ -93,6 +94,7 @@ LOG_DB_CONF.setCredentials({
     password: "admin"
 });
 let logDB: PouchDBWrapper;
+
 
 describe("PouchDBWrapper tests", () => {
 
@@ -438,6 +440,46 @@ describe("PouchDBWrapper tests", () => {
             }
         });
     });
+
+
+    TestUtil.runTest("should return all authorized users of a db", LOG_NAME, getLogger, () => {
+        const user = "testUser";
+        const steps = [
+            createDB(),
+            authorizeUser(user),
+            getAuthorizedUsers(),
+            authorizedUser_shouldInclude(user)
+        ];
+        return steps;
+
+        function createDB() {
+            return concatMap((result: ValueWithLogger) => {
+                return CouchDBWrapper.createCouchDBDatabase(COUCHDB_CONF, result.log);
+            });
+        }
+
+        function authorizeUser(username: string) {
+            return concatMap((result: ValueWithLogger) => {
+                return CouchDBWrapper.setDBAuthorization(COUCHDB_CONF, [username], result.log);
+            });
+        }
+
+        function getAuthorizedUsers() {
+            return concatMap((result: ValueWithLogger) => {
+                return CouchDBWrapper.getDBAuthorization(COUCHDB_CONF, result.log);
+            });
+        }
+
+        function authorizedUser_shouldInclude(username: string) {
+            return concatMap((result: ValueWithLogger) => {
+                const authorized: string[] = result.value;
+                expect(authorized.length).toBe(1);
+                expect(authorized[0]).toBe(username);
+                return result.log.addTo(of(result.value));
+            });
+        }
+    });
+
     it("should emit an observable event if a new document is added", complete => {
         const todo = new Todo("some todo");
         function subscribeToAddDocumentObservable(db: PouchDBWrapper) {
