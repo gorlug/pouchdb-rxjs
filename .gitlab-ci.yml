@@ -1,0 +1,23 @@
+image: gortimedo
+
+cache:
+  paths:
+  - node_modules/
+
+stages:
+  - test
+
+test:
+   stage: test
+   services:
+     - couchdb-test
+   script:
+     - sudo chown -R seluser:seluser .
+     - npm install
+     - npm run-s ci-test
+   artifacts:
+     paths:
+       - coverage
+     when: always
+   tags:
+     - docker

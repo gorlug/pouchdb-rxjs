@@ -37,7 +37,8 @@
     "clean": "trash build test",
     "all": "run-s reset test cov:check doc:html",
     "prepare-release": "run-s all version doc:publish",
-    "release": "run-s build && npm publish --access public"
+    "release": "run-s build && npm publish --access public",
+    "ci-test": "./gitlab.test.sh"
   },
   "scripts-info": {
     "info": "Display information about the package scripts",
