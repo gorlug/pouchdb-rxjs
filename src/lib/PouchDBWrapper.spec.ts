@@ -441,6 +441,17 @@ describe("PouchDBWrapper tests", () => {
         });
     });
 
+    function createDB() {
+        return concatMap((result: ValueWithLogger) => {
+            return CouchDBWrapper.createCouchDBDatabase(COUCHDB_CONF, result.log);
+        });
+    }
+
+    function getAuthorizedUsers() {
+        return concatMap((result: ValueWithLogger) => {
+            return CouchDBWrapper.getDBAuthorization(COUCHDB_CONF, result.log);
+        });
+    }
 
     TestUtil.runTest("should return all authorized users of a db", LOG_NAME, getLogger, () => {
         const user = "testUser";
@@ -452,21 +463,10 @@ describe("PouchDBWrapper tests", () => {
         ];
         return steps;
 
-        function createDB() {
-            return concatMap((result: ValueWithLogger) => {
-                return CouchDBWrapper.createCouchDBDatabase(COUCHDB_CONF, result.log);
-            });
-        }
 
         function authorizeUser(username: string) {
             return concatMap((result: ValueWithLogger) => {
                 return CouchDBWrapper.setDBAuthorization(COUCHDB_CONF, [username], result.log);
-            });
-        }
-
-        function getAuthorizedUsers() {
-            return concatMap((result: ValueWithLogger) => {
-                return CouchDBWrapper.getDBAuthorization(COUCHDB_CONF, result.log);
             });
         }
 
@@ -476,6 +476,22 @@ describe("PouchDBWrapper tests", () => {
                 expect(authorized.length).toBe(1);
                 expect(authorized[0]).toBe(username);
                 return result.log.addTo(of(result.value));
+            });
+        }
+    });
+
+    TestUtil.runTest("get authorized users of freshly created table should return an empty array", LOG_NAME, getLogger, () => {
+        const steps = [
+            createDB(),
+            getAuthorizedUsers(),
+            authorizedUsersArray_shouldBe_empty()
+        ];
+        return steps;
+
+        function authorizedUsersArray_shouldBe_empty() {
+            return concatMap((result: ValueWithLogger) => {
+                expect(result.value.length).toBe(0);
+                return of(result);
             });
         }
     });

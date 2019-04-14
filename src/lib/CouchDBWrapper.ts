@@ -363,7 +363,10 @@ export class CouchDBWrapper {
             concatMap((result: ValueWithLogger) => {
                 this.logDBAuthorizationResponse("getDBAuthorization", result);
                 start.complete();
-                return result.log.addTo(of(result.value.response.members.names));
+                if (result.value.response.members) {
+                    return result.log.addTo(of(result.value.response.members.names));
+                }
+                return result.log.addTo(of([]));
             })
         );
     }
