@@ -194,7 +194,10 @@ export class CouchDBWrapper {
                 conf.getDebugInfo());
             return throwError({exists: true, msg: "CouchDB database " + conf.toUrl() + " already exists"});
         }
-        return throwError(error.response);
+        if (error.response !== undefined) {
+            return throwError(error.response);
+        }
+        return throwError(error);
     }
 
     private static getAjaxResponseDebugInfo(value: AjaxResponse) {
