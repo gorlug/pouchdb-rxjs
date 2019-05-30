@@ -38,6 +38,10 @@ export class CouchDBConf {
     }
 
     setBaseUrl(url: string) {
+        url = url.trim();
+        if (url[url.length - 1] !== "/") {
+            url += "/";
+        }
         this.baseUrl = url;
     }
 
