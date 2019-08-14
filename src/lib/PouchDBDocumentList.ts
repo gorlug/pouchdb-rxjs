@@ -78,6 +78,10 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
         this.items.splice(currentIndex, 1);
         this.items.splice(newIndex, 0, item);
+        this.updateListContent(log);
+    }
+
+    protected updateListContent(log: Logger) {
         this.listContent$.next(log.addToValue(this.cloneItemsArray()));
     }
 
@@ -123,7 +127,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     private itemAddedEvent(log: Logger) {
         log.logMessage(LOG_NAME, "itemAddedEvent", {length: this.items.length});
         this.sort();
-        this.listContent$.next(log.addToValue(this.cloneItemsArray()));
+        this.updateListContent(log);
     }
 
     private cloneItemsArray() {
@@ -161,7 +165,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
-    private addOrUpdateItemAtIndexSync(item: T, index: number, log: Logger) {
+    protected addOrUpdateItemAtIndexSync(item: T, index: number, log: Logger) {
         const {existingIndex, existingItem, isItemFound} = this.lookForItemWithTheSameId(item, log);
         if (isItemFound) {
             this.replaceItemAtIndex(existingItem, existingIndex, item, log);
@@ -179,7 +183,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         }
     }
 
-    private replaceItemAtIndex(existingItem: T, existingIndex: number, replacementItem: T, log: Logger) {
+    protected replaceItemAtIndex(existingItem: T, existingIndex: number, replacementItem: T, log: Logger) {
         log.logMessage(LOG_NAME, "replaceItemAtIndex", {existingItem: existingItem.getDebugInfo(),
             existingIndex: existingIndex, replacementItem: replacementItem.getDebugInfo()});
         this.deleteItemFromList(existingItem, log);
@@ -230,12 +234,12 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         log = log.start(LOG_NAME, "deleteItem", itemToDelete.getDebugInfo());
         return Observable.create(emitter => {
             const itemIndex = this.deleteItemFromList(itemToDelete, log);
-            this.listContent$.next(log.addToValue(this.cloneItemsArray()));
+            this.updateListContent(log);
             log.addToSubscriberNextAndComplete(emitter, {item: itemToDelete, index: itemIndex});
         });
     }
 
-    private deleteItemFromList(itemToDelete: T, log: Logger) {
+    protected deleteItemFromList(itemToDelete: T, log: Logger) {
         let itemIndex = -1;
         this.items = this.items.filter((item, index) => {
             if (this.isTheSameCheck(item, itemToDelete)) {
@@ -381,7 +385,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
             this.items = this.items.filter(item => {
                 return item.getId() !== deletedItem._id;
             });
-            this.listContent$.next(log.addToValue(this.cloneItemsArray()));
+            this.updateListContent(log);
             log.addToSubscriberNextAndComplete(emitter, deletedItem);
         });
     }
