@@ -242,6 +242,10 @@ export class Logger {
         this.trace = trace;
     }
 
+    getTrace(): string {
+        return this.trace;
+    }
+
     constructor(name = "") {
         this.name = name;
     }
