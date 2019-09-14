@@ -165,6 +165,9 @@ export class PouchDBWrapper {
     private static emitDocChanges(docs: any[], db: PouchDBWrapper, generator: PouchDBDocumentGenerator<any>,
                                   log: Logger) {
         docs.forEach((doc: any) => {
+            if (this.filterOutId(doc._id)) {
+                return;
+            }
             if (doc._deleted) {
                 db.docDeleted$.next(log.addToValue({_id: doc._id}));
                 return;
@@ -172,6 +175,10 @@ export class PouchDBWrapper {
             const document = generator.fromJSON(doc);
             db.docSaved$.next(log.addToValue(document));
         });
+    }
+
+    private static filterOutId(id: string | any | PouchDB.Core.DocumentId) {
+        return id.toString().startsWith("_");
     }
 
     /**
@@ -302,6 +309,9 @@ export class PouchDBWrapper {
     private createDocumentListFromResponse(response: AllDocsResponse<any>, log: Logger) {
         const list = [];
         response.rows.forEach(row => {
+            if (PouchDBWrapper.filterOutId(row.doc._id)) {
+                return;
+            }
             list.push(this.generator.fromJSON(row.doc));
         });
         log.logMessage(PouchDBWrapper.getLogName(), "getAllDocuments created document" +
