@@ -4,8 +4,6 @@ import {DBValueWithLog, DeletedDocument, PouchDBWrapper} from "./PouchDBWrapper"
 import {BehaviorSubject, Observable, of} from "rxjs";
 import {concatMap} from "rxjs/operators";
 
-const LOG_NAME = "PouchDBDocumentList";
-
 export interface ItemWithLogger<T> {
     value: T;
     log: Logger;
@@ -25,6 +23,8 @@ export interface DeletedItemWithIndexAndLogger<T> {
  */
 export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
+    protected logName = "PouchDBDocumentList";
+
     /**
      * This observable holds the current view of the list.
      */
@@ -34,7 +34,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     private log: Logger = Logger.getLogger("PouchDBDocumentList");
 
     public getCurrentIndexOfItem(item: T, log: Logger): Observable<{value: number, log: Logger}> {
-        log = log.start(LOG_NAME, "getCurrentIndexOfItem", item.getDebugInfo());
+        log = log.start(this.logName, "getCurrentIndexOfItem", item.getDebugInfo());
         return Observable.create(emitter => {
             let currentIndex = -1;
             this.items.some((itemInArray, itemIndex) => {
@@ -44,7 +44,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 }
                 return false;
             });
-            log.logMessage(LOG_NAME, "getCurrentIndexOfItem item has index", {item: item.getDebugInfo(), index: currentIndex});
+            log.logMessage(this.logName, "getCurrentIndexOfItem item has index", {item: item.getDebugInfo(), index: currentIndex});
             log.addToSubscriberNextAndComplete(emitter, currentIndex);
         });
     }
@@ -55,7 +55,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     public moveUp(item: T, log: Logger): Observable<ItemWithLogger<T>> {
-        const logStart = log.start(LOG_NAME, "moveUp", item.getDebugInfo());
+        const logStart = log.start(this.logName, "moveUp", item.getDebugInfo());
         return this.getCurrentIndexOfItem(item, log).pipe(
             concatMap(result => {
                 result.log.complete();
@@ -71,7 +71,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private moveItem(currentIndex: number, newIndex: number, item: T, log: Logger) {
-        log.logMessage(LOG_NAME, "move item", {
+        log.logMessage(this.logName, "move item", {
             currentIndex: currentIndex,
             newIndex: newIndex,
             item: item.getDebugInfo()
@@ -91,7 +91,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     moveDown(item: T, log: Logger): Observable<ItemWithLogger<T>> {
-        const run = log.start(LOG_NAME, "moveDown", item.getDebugInfo());
+        const run = log.start(this.logName, "moveDown", item.getDebugInfo());
         return this.getCurrentIndexOfItem(item, log).pipe(
             concatMap(result => {
                 result.log.complete();
@@ -107,7 +107,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     addItemAtIndex(index: number, item: T, log: Logger): Observable<ItemWithLogger<T>> {
-        log = log.start(LOG_NAME, "addItemAtIndex", {item: item.getDebugInfo(), index: index});
+        log = log.start(this.logName, "addItemAtIndex", {item: item.getDebugInfo(), index: index});
         return Observable.create(emitter => {
             this.addItemToListAtIndex(index, item, log);
             log.addToSubscriberNextAndComplete(emitter, item);
@@ -125,7 +125,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private itemAddedEvent(log: Logger) {
-        log.logMessage(LOG_NAME, "itemAddedEvent", {length: this.items.length});
+        log.logMessage(this.logName, "itemAddedEvent", {length: this.items.length});
         this.sort();
         this.updateListContent(log);
     }
@@ -147,7 +147,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     addOrUpdateItem(item: T, log: Logger): Observable<{value: T, log: Logger}> {
-        log.logMessage(LOG_NAME, "addOrUpdateItem", item.getDebugInfo());
+        log.logMessage(this.logName, "addOrUpdateItem", item.getDebugInfo());
         return this.addOrUpdateItemAtIndex(item, -1, log);
     }
 
@@ -158,7 +158,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     addOrUpdateItemAtIndex(item: T, index: number, log: Logger): Observable<{value: T, log: Logger}> {
-        log = log.start(LOG_NAME, "addOrUpdateItemAtIndex", {index: index, item: item.getDebugInfo()});
+        log = log.start(this.logName, "addOrUpdateItemAtIndex", {index: index, item: item.getDebugInfo()});
         return Observable.create(emitter => {
             this.addOrUpdateItemAtIndexSync(item, index, log);
             log.addToSubscriberNextAndComplete(emitter, item);
@@ -175,7 +175,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private addNewItemAtIndex(log: Logger, item: T, index: number) {
-        log.logMessage(LOG_NAME, "addNewItemAtIndex", item.getDebugInfo());
+        log.logMessage(this.logName, "addNewItemAtIndex", item.getDebugInfo());
         if (index === -1) {
             this.pushItem(item, log);
         } else {
@@ -184,7 +184,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     protected replaceItemAtIndex(existingItem: T, existingIndex: number, replacementItem: T, log: Logger) {
-        log.logMessage(LOG_NAME, "replaceItemAtIndex", {existingItem: existingItem.getDebugInfo(),
+        log.logMessage(this.logName, "replaceItemAtIndex", {existingItem: existingItem.getDebugInfo(),
             existingIndex: existingIndex, replacementItem: replacementItem.getDebugInfo()});
         this.deleteItemFromList(existingItem, log);
         this.addItemToListAtIndex(existingIndex, replacementItem, log);
@@ -201,19 +201,19 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
                 isItemFound = true;
             }
         });
-        log.logMessage(LOG_NAME, "lookForItemWithTheSameId", {item: item.getDebugInfo(), existingIndex: existingIndex,
+        log.logMessage(this.logName, "lookForItemWithTheSameId", {item: item.getDebugInfo(), existingIndex: existingIndex,
             isItemFound: isItemFound, existingItem: existingItem !== null ? existingItem.getDebugInfo() : undefined});
         return {existingIndex, existingItem, isItemFound};
     }
 
     public getItems(log: Logger): Observable<{value: Array<T>, log: Logger}> {
         const items: T[] = this.items;
-        log = log.start(LOG_NAME, "getItems", {length: items.length});
+        log = log.start(this.logName, "getItems", {length: items.length});
         return log.addTo(of(items));
     }
 
     public addItem(item: T, log: Logger): Observable<ItemWithLogger<T>> {
-        log = log.start(LOG_NAME, "addItem", item.getDebugInfo());
+        log = log.start(this.logName, "addItem", item.getDebugInfo());
         return Observable.create(emitter => {
             this.addItemToList(item, log);
             log.addToSubscriberNextAndComplete(emitter, log);
@@ -221,17 +221,17 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private addItemToList(item: T, log: Logger) {
-        log.logMessage(LOG_NAME, "addItemToList", item.getDebugInfo());
+        log.logMessage(this.logName, "addItemToList", item.getDebugInfo());
         this.pushItem(item, log);
     }
 
     public addItemAtBeginning(item: T, log: Logger): Observable<ItemWithLogger<T>> {
-        log.logMessage(LOG_NAME, "addItemAtBeginning", item.getDebugInfo());
+        log.logMessage(this.logName, "addItemAtBeginning", item.getDebugInfo());
         return this.addItemAtIndex(0, item, log);
     }
 
     public deleteItem(itemToDelete: T, log: Logger): Observable<DeletedItemWithIndexAndLogger<T>> {
-        log = log.start(LOG_NAME, "deleteItem", itemToDelete.getDebugInfo());
+        log = log.start(this.logName, "deleteItem", itemToDelete.getDebugInfo());
         return Observable.create(emitter => {
             const itemIndex = this.deleteItemFromList(itemToDelete, log);
             this.updateListContent(log);
@@ -248,7 +248,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
             }
             return true;
         });
-        log.logMessage(LOG_NAME, "deleteItem remaining item length", {length: this.items.length});
+        log.logMessage(this.logName, "deleteItem remaining item length", {length: this.items.length});
         return itemIndex;
     }
 
@@ -263,11 +263,11 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     public addUniqueItem(item: T, log: Logger): Observable<{value: boolean, log: Logger}> {
-        log = log.start(LOG_NAME, "addUniqueItem", item.getDebugInfo());
+        log = log.start(this.logName, "addUniqueItem", item.getDebugInfo());
         return Observable.create(emitter => {
             const filtered = this.items.filter( (value:  T) => {
                 if (this.isTheSameCheck(item, value)) {
-                    log.logMessage(LOG_NAME, "addUniqueItem item is already added", item.getDebugInfo());
+                    log.logMessage(this.logName, "addUniqueItem item is already added", item.getDebugInfo());
                     return true;
                 }
                 return false;
@@ -285,25 +285,25 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     public getSize(log: Logger): Observable<{ value: number, log: Logger}> {
-        log = log.start(LOG_NAME, "getSize");
+        log = log.start(this.logName, "getSize");
         return Observable.create(emitter => {
             const size = this.items.length;
-            log.logMessage(LOG_NAME, "getSize", {size: size});
+            log.logMessage(this.logName, "getSize", {size: size});
             log.addToSubscriberNextAndComplete(emitter, size);
         });
     }
 
     public getItemAtIndex(index: number, log: Logger): Observable<ItemWithLogger<T>> {
-        log = log.start(LOG_NAME, "getItemAtIndex", {index: index});
+        log = log.start(this.logName, "getItemAtIndex", {index: index});
         return Observable.create(emitter => {
             if (index >= this.items.length) {
                 const errorMessage = `index ${index} is greater than the available number of items ${this.items.length}`;
-                log.logErrorAndSendSubscriberErrorComplete(emitter, LOG_NAME, "getItemAtIndex",
+                log.logErrorAndSendSubscriberErrorComplete(emitter, this.logName, "getItemAtIndex",
                     errorMessage, {index: index, length: this.items.length});
             }
             const item = this.items[index];
-            this.log.logMessage(LOG_NAME, "getting item at index", {item: item.getDebugInfo(), index: index});
-            log.logMessage(LOG_NAME, "getItemAtIndex item is",
+            this.log.logMessage(this.logName, "getting item at index", {item: item.getDebugInfo(), index: index});
+            log.logMessage(this.logName, "getItemAtIndex item is",
                 {item: item.getDebugInfo(), index: index});
             log.addToSubscriberNextAndComplete(emitter, item);
         });
@@ -316,7 +316,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     public subscribeTo(db: PouchDBWrapper, log: Logger): Observable<DBValueWithLog> {
-        const logStart = log.start(LOG_NAME, "subscribeTo", db.getDebugInfo());
+        const logStart = log.start(this.logName, "subscribeTo", db.getDebugInfo());
         return db.getAllDocuments(log).pipe(
             concatMap(result => this.loadInitialItems(result)),
             concatMap(result => this.initializeSubscriptions(result, db)),
@@ -328,7 +328,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
 
     private loadInitialItems(result: ValueWithLogger) {
         const items: T[] = result.value;
-        const log = result.log.start(LOG_NAME, "loadInitialItems", {length: items.length});
+        const log = result.log.start(this.logName, "loadInitialItems", {length: items.length});
         items.forEach((item: T) => {
             this.addItemToList(item, result.log);
         });
@@ -343,25 +343,25 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
     }
 
     private subscribeToDocSaved(db: PouchDBWrapper, log: Logger) {
-        log.logMessage(LOG_NAME, "subscribeToDocSaved", db.getDebugInfo());
+        log.logMessage(this.logName, "subscribeToDocSaved", db.getDebugInfo());
         db.docSaved$.subscribe((next: ValueWithLogger) => {
             const doc: T = next.value;
-            const logStart = next.log.start(LOG_NAME, "subscribeToDocSaved adding new saved document " +
+            const logStart = next.log.start(this.logName, "subscribeToDocSaved adding new saved document " +
                 "at beginning", doc.getDebugInfo());
             this.addOrUpdateItemAtIndexSync(doc, 0, log);
             logStart.complete();
         }, error => {
-            Logger.getLoggerTraceWithDB(log.getLogDB()).logError(LOG_NAME, "something went wrong while subscribing to new documents " +
+            Logger.getLoggerTraceWithDB(log.getLogDB()).logError(this.logName, "something went wrong while subscribing to new documents " +
                 "being added", error + "", {error: error});
         });
     }
 
     private subscribeToDocDeleted(db: PouchDBWrapper, log: Logger) {
-        log.logMessage(LOG_NAME, "subscribeToDocDeleted");
+        log.logMessage(this.logName, "subscribeToDocDeleted");
         db.docDeleted$.pipe(
             concatMap(next => {
                 const deletedDoc: DeletedDocument = next.value;
-                next.log.start(LOG_NAME, "subscribeToDocDeleted doc was deleted",
+                next.log.start(this.logName, "subscribeToDocDeleted doc was deleted",
                     deletedDoc);
                 return this.deleteDeletedItem(deletedDoc, next.log);
             })
@@ -369,7 +369,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
             next.log.complete();
         }, error => {
             Logger.getLoggerTraceWithDB(log.getLogDB()).logError(
-                LOG_NAME, "something went wrong while deleting document from db",
+                this.logName, "something went wrong while deleting document from db",
                 error + "", error);
         });
     }
@@ -380,7 +380,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
      * @param log
      */
     deleteDeletedItem(deletedItem: DeletedDocument, log: Logger): Observable<ValueWithLogger> {
-        log = log.start(LOG_NAME, "deleteDeletedItem", deletedItem);
+        log = log.start(this.logName, "deleteDeletedItem", deletedItem);
         return Observable.create(emitter => {
             this.items = this.items.filter(item => {
                 return item.getId() !== deletedItem._id;
