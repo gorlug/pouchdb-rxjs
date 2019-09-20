@@ -134,7 +134,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         const clone = [];
         this.items.forEach(item => {
             clone.push(item);
-        })
+        });
         return clone;
     }
 

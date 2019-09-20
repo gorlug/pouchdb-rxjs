@@ -1,4 +1,5 @@
 // https://pouchdb.com/custom.html
+import {v4 as uuid} from "uuid";
 // @ts-ignore
 import PouchDB from "pouchdb-core";
 // @ts-ignore
@@ -16,11 +17,10 @@ import {catchError, concatMap} from "rxjs/operators";
 import {fromPromise} from "rxjs/internal-compatibility";
 import {PouchDBDocument, PouchDBDocumentGenerator} from "./PouchDBDocument";
 import {CouchDBConf} from "./CouchDBWrapper";
-
+import {Logger, ValueWithLogger} from "./Logger";
 import Database = PouchDB.Database;
 import Response = PouchDB.Core.Response;
 import AllDocsResponse = PouchDB.Core.AllDocsResponse;
-import {Logger, ValueWithLogger} from "./Logger";
 
 PouchDB.plugin(pouchdb_adapter_idb);
 PouchDB.plugin(pouchdb_adapter_http);
@@ -220,8 +220,8 @@ export class PouchDBWrapper {
         return info;
     }
 
-    protected logStart(dsc: string, log: Logger, doc: PouchDBDocument<any>): Logger {
-        return log.start(PouchDBWrapper.getLogName(), dsc, this.getDebugInfo({doc: doc.getDebugInfo()}));
+    protected logStart(dsc: string, log: Logger, doc: PouchDBDocument<any>, id?: string): Logger {
+        return log.start(PouchDBWrapper.getLogName(), dsc, this.getDebugInfo({doc: doc.getDebugInfo(), id}));
     }
 
     /**
@@ -230,7 +230,8 @@ export class PouchDBWrapper {
      * @param log
      */
     saveDocument(document: PouchDBDocument<any>, log: Logger): Observable<ValueWithLogger> {
-        log = this.logStart("saveDocument", log, document);
+        const saveId = uuid();
+        log = this.logStart("saveDocument", log, document, saveId);
         const json = document.toDocument();
         if (json._rev == null) {
             delete json._rev;
@@ -238,12 +239,12 @@ export class PouchDBWrapper {
         return log.addTo(fromPromise(this.db.put(json)).pipe(
             catchError(errorResult => {
                 log.logError(PouchDBWrapper.getLogName(), "saveDocument failed to save document", "" + errorResult.message,
-                    {error: errorResult});
+                    {error: errorResult, doc: document.getDebugInfo(), id: saveId});
                 log.complete();
                 return throwError(errorResult.message);
             }),
             concatMap((result: Response) => {
-                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument response", {response: result});
+                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument response", {response: result, id: saveId});
                 if (result.ok) {
                     document.updateRev(result.rev);
                 }
