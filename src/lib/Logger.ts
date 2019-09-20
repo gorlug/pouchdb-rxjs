@@ -305,17 +305,17 @@ export class Logger {
         if (this.trace !== undefined) {
             message.trace = this.trace;
         }
-        // console.log("+++++", message.name, message.msg, message.run);
         const logMessage = message.toLogMessage();
         console.log(logMessage);
         return this.logToDB(message);
     }
 
-    private logStart(name: string, dsc: string, params): number {
+    private logStart(name: string, dsc: string, params, trace: string, newTrace: string): number {
         const start = new Date().getTime();
         const message = new LogDocument(name, dsc);
         message.params = params;
         message.run = "start";
+        message.msg = dsc + " start";
         this.log(message);
         return start;
     }
@@ -326,6 +326,7 @@ export class Logger {
         message.params = params;
         message.duration = duration;
         message.run = "end";
+        message.msg = dsc + " end";
         if (error !== undefined) {
             message.error = error;
         }
@@ -343,8 +344,8 @@ export class Logger {
         const log = new Logger(name);
         log.dsc = dsc;
         log.params = params;
-        log.startTime = this.logStart(name, dsc, params);
         log.trace = this.trace;
+        log.startTime = this.logStart(name, dsc, params, this.trace, log.trace);
         log.silent = this.silent;
         log.logDB = this.logDB;
         return log;
