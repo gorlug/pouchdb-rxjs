@@ -353,7 +353,7 @@ export class Logger {
 
     addTo(observable: Observable<any>): Observable<ValueWithLogger> {
         return observable.pipe(
-            concatMap(result => of({ value: result, log: this})));
+            concatMap(result => of({value: result, log: this})));
     }
 
     addToValue(value: any): ValueWithLogger {
@@ -374,7 +374,8 @@ export class Logger {
             const log = new Logger("");
             log.setSilent(true);
             const saveRequest$ = this.logDB.saveDocument(logMessage, log).pipe(share());
-            saveRequest$.subscribe(() => { } , error => {
+            saveRequest$.subscribe(() => {
+            }, error => {
                 console.log(error);
             });
             return saveRequest$.pipe(
@@ -382,5 +383,9 @@ export class Logger {
             );
         }
         return of(this);
+    }
+
+    getDsc() {
+        return this.dsc;
     }
 }
