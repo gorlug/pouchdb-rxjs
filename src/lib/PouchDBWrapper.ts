@@ -221,7 +221,7 @@ export class PouchDBWrapper {
     }
 
     protected logStart(dsc: string, log: Logger, doc: PouchDBDocument<any>, id?: string): Logger {
-        return log.start(PouchDBWrapper.getLogName(), dsc, this.getDebugInfo({doc: doc.getDebugInfo(), id}));
+        return log.start(PouchDBWrapper.getLogName(), dsc, this.getDebugInfo({doc: doc.getDebugInfo(), saveTrace: id}));
     }
 
     /**
@@ -244,7 +244,7 @@ export class PouchDBWrapper {
                 return throwError(errorResult.message);
             }),
             concatMap((result: Response) => {
-                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument response", {response: result, id: saveId});
+                log.logMessage(PouchDBWrapper.getLogName(), "saveDocument response", {response: result, saveTrace: saveId});
                 if (result.ok) {
                     document.updateRev(result.rev);
                 }

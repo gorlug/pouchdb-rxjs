@@ -1,7 +1,7 @@
 import {PouchDBDocument} from "./PouchDBDocument";
 import {Logger, ValueWithLogger} from "./Logger";
 import {DBValueWithLog, DeletedDocument, PouchDBWrapper} from "./PouchDBWrapper";
-import {BehaviorSubject, Observable, of} from "rxjs";
+import {BehaviorSubject, Observable, of, Subscription} from "rxjs";
 import {concatMap} from "rxjs/operators";
 
 export interface ItemWithLogger<T> {
@@ -32,6 +32,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         {value: [], log: Logger.getLoggerTrace()});
     protected items: T[] = [];
     private log: Logger = Logger.getLogger("PouchDBDocumentList");
+    protected docSavedSubscription: Subscription;
 
     public getCurrentIndexOfItem(item: T, log: Logger): Observable<{value: number, log: Logger}> {
         log = log.start(this.logName, "getCurrentIndexOfItem", item.getDebugInfo());
@@ -342,9 +343,9 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         return of(log);
     }
 
-    private subscribeToDocSaved(db: PouchDBWrapper, log: Logger) {
+    public subscribeToDocSaved(db: PouchDBWrapper, log: Logger) {
         log.logMessage(this.logName, "subscribeToDocSaved", db.getDebugInfo());
-        db.docSaved$.subscribe((next: ValueWithLogger) => {
+        this.docSavedSubscription = db.docSaved$.subscribe((next: ValueWithLogger) => {
             const doc: T = next.value;
             const logStart = next.log.start(this.logName, "subscribeToDocSaved adding new saved document " +
                 "at beginning", doc.getDebugInfo());
@@ -356,7 +357,13 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
-    private subscribeToDocDeleted(db: PouchDBWrapper, log: Logger) {
+    public unsubscribeFromDocSaved() {
+        if (this.docSavedSubscription !== undefined) {
+            this.docSavedSubscription.unsubscribe();
+        }
+    }
+
+    public subscribeToDocDeleted(db: PouchDBWrapper, log: Logger) {
         log.logMessage(this.logName, "subscribeToDocDeleted");
         db.docDeleted$.pipe(
             concatMap(next => {

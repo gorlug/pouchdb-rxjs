@@ -123,6 +123,10 @@ export abstract class PouchDBDocument<JSONDocType extends PouchDBDocumentJSON> {
         this.debug = debug;
     }
 
+    isDebug() {
+        return this.debug;
+    }
+
     /**
      * Returns debug information of that document. By
      * default this is just the id, rev, version and name of
