@@ -397,4 +397,18 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         });
     }
 
+    changePositionOfItem(currentIndex: number, newIndex: number, log: Logger): Observable<ValueWithLogger> {
+        log = log.start(this.logName, "changePositionOfItem", {currentIndex, newIndex});
+        return Observable.create(emitter => {
+            const item = this.changePositionOfItemSync(currentIndex, newIndex, log);
+            log.addToSubscriberNextAndComplete(emitter, item);
+        });
+    }
+
+    protected changePositionOfItemSync(currentIndex: number, newIndex: number, log: Logger) {
+        const item = this.items[currentIndex];
+        this.deleteItemFromList(item, log);
+        this.addOrUpdateItemAtIndexSync(item, newIndex, log);
+        return item;
+    }
 }
