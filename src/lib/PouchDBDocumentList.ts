@@ -191,7 +191,7 @@ export abstract class PouchDBDocumentList<T extends PouchDBDocument<any>> {
         this.addItemToListAtIndex(existingIndex, replacementItem, log);
     }
 
-    private lookForItemWithTheSameId(item: T, log: Logger) {
+    protected lookForItemWithTheSameId(item: T, log: Logger) {
         let existingIndex = -1;
         let existingItem: T = null;
         let isItemFound = false;

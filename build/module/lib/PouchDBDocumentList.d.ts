@@ -76,7 +76,11 @@ export declare abstract class PouchDBDocumentList<T extends PouchDBDocument<any>
     protected addOrUpdateItemAtIndexSync(item: T, index: number, log: Logger): void;
     private addNewItemAtIndex;
     protected replaceItemAtIndex(existingItem: T, existingIndex: number, replacementItem: T, log: Logger): void;
-    private lookForItemWithTheSameId;
+    protected lookForItemWithTheSameId(item: T, log: Logger): {
+        existingIndex: number;
+        existingItem: T;
+        isItemFound: boolean;
+    };
     getItems(log: Logger): Observable<{
         value: Array<T>;
         log: Logger;
